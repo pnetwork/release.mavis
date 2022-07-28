@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Mavis</title>
+    <link>https://pnetwork.github.io/mavis-static/posts/</link>
+    <description>Recent content in Posts on Mavis</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 24 Jul 2022 19:31:58 +0800</lastBuildDate><atom:link href="https://pnetwork.github.io/mavis-static/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Mavis</title>
+      <link>https://pnetwork.github.io/mavis-static/posts/mavis/</link>
+      <pubDate>Sun, 24 Jul 2022 19:31:58 +0800</pubDate>
+      
+      <guid>https://pnetwork.github.io/mavis-static/posts/mavis/</guid>
+      <description>Introduce Mavis is &amp;hellip;
+TLTR; curl -sSL https://pnetwork.github.io/mavis-static/release/1.0.0/install.sh |sh
+command：
+log systemd start stop </description>
+    </item>
+    
+  </channel>
+</rss>
