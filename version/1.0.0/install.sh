@@ -251,7 +251,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.mavis-f2e.loadbalancer.server.port=3000"
-      - "traefik.http.routers.mavis-f2e.rule=Host(\`${MAVIS_URL}\`)"
+      - "traefik.http.routers.mavis-f2e.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`)"
       - "traefik.http.routers.mavis-f2e.entrypoints=websecure"
       - "traefik.http.routers.mavis-f2e.service=mavis-f2e@docker"
       - "traefik.http.routers.mavis-f2e.priority=1"
@@ -437,6 +437,7 @@ EOF
 	cat >${INSTALL_DIR}/config/.env <<EOF
 MASTER_KEYS=${MASTER_KEYS}
 MAVIS_URL=${MAVIS_URL:-https://${MAVIS_URL}}
+MAVIS_URL_WITHOUT_PROTOCOL=${MAVIS_URL}
 SECRET_KEY=${SECRET_KEY}
 MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-${INSTALL_DIR}/data/media}
 SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-${INSTALL_DIR}/data/ssh-proxy}
@@ -819,19 +820,24 @@ do_install() {
 	case "$lsb_dist.$dist_version" in
 	debian.stretch | debian.jessie)
 		deprecation_notice "$lsb_dist" "$dist_version"
+                exit 1
 		;;
 	raspbian.stretch | raspbian.jessie)
 		deprecation_notice "$lsb_dist" "$dist_version"
+                exit 1
 		;;
 	ubuntu.xenial | ubuntu.trusty)
 		deprecation_notice "$lsb_dist" "$dist_version"
+                exit 1
 		;;
 	centos.8)
 		deprecation_notice "$lsb_dist" "$dist_version"
+		exit 1
 	    ;;
 	fedora.*)
 		if [ "$dist_version" -lt 33 ]; then
 			deprecation_notice "$lsb_dist" "$dist_version"
+			exit 1
 		fi
 		;;
 	esac
