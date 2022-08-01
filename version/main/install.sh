@@ -826,7 +826,7 @@ do_install() {
 	ubuntu.xenial | ubuntu.trusty)
 		deprecation_notice "$lsb_dist" "$dist_version"
 		;;
-	centos.7)
+	centos.8)
 		deprecation_notice "$lsb_dist" "$dist_version"
 	    ;;
 	fedora.*)
