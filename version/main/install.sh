@@ -78,7 +78,7 @@ check_environment() {
 
 	## Check disk space (40GB)
 	local avail_disk=$(df | grep "/$" | awk '{print $4}')
-	if [ "$avail_disk" -lt 41943040 ]; then
+	if [ "$avail_disk" -lt 39000000 ]; then
 		echo -e "${COLOR_RED}Storage size error. Minimum storage size: 40GB${COLOR_REST}"
 		exit 1
 	else
@@ -102,7 +102,7 @@ check_environment() {
 	fi
 	## Check memory
 	local avail_mem="$(free -g | grep Mem | awk '{print $2}')"
-	if [ "$avail_mem" -lt 16 ]; then
+	if [ "$avail_mem" -lt 15 ]; then
 		echo -e "${COLOR_RED}Memory size error. Minimum memory size${COLOR_REST}"
 		exit 1
 	else
@@ -1103,6 +1103,7 @@ do_install() {
 
 # wrapped up in a function so that we have some protection against only getting
 # half the file during "curl | sh"
+check_environment
 if command_exists docker && [ x"$DRY_RUN" != x"1" ]; then
 	remove_docker
 fi
