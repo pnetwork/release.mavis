@@ -228,7 +228,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.mavis-apiserver.service=mavis-apiserver@docker"
       - "traefik.http.services.mavis-apiserver.loadbalancer.server.port=8000"
-      - "traefik.http.routers.mavis-apiserver.rule=Host(\`${MAVIS_URL}\`) && (PathPrefix(\`/api\`) || PathPrefix(\`/admin\`) || PathPrefix(\`/apistatic\`) || PathPrefix(\`/docs\`) || PathPrefix(\`/openapi.json\`) || PathPrefix(\`/auth\`) || PathPrefix(\`/redoc\`))"
+      - "traefik.http.routers.mavis-apiserver.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`) && (PathPrefix(\`/api\`) || PathPrefix(\`/admin\`) || PathPrefix(\`/apistatic\`) || PathPrefix(\`/docs\`) || PathPrefix(\`/openapi.json\`) || PathPrefix(\`/auth\`) || PathPrefix(\`/redoc\`))"
       - "traefik.http.routers.mavis-apiserver.entrypoints=websecure"
       - "traefik.http.routers.mavis-apiserver.priority=2"
       - "traefik.http.routers.mavis-apiserver.tls=true"
@@ -288,7 +288,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.mavis-sshserver.service=mavis-sshserver@docker"
       - "traefik.http.services.mavis-sshserver.loadbalancer.server.port=4002"
-      - "traefik.http.routers.mavis-sshserver.rule=Host(\`${MAVIS_URL}\`) && PathPrefix(\`/ssh\`)"
+      - "traefik.http.routers.mavis-sshserver.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`) && PathPrefix(\`/ssh\`)"
       - "traefik.http.routers.mavis-sshserver.entrypoints=websecure"
       - "traefik.http.routers.mavis-sshserver.priority=3"
       - "traefik.http.routers.mavis-sshserver.tls=true"
@@ -324,7 +324,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.mavis-rdpwsserver.service=mavis-rdpwsserver@docker"
       - "traefik.http.services.mavis-rdpwsserver.loadbalancer.server.port=4003"
-      - "traefik.http.routers.mavis-rdpwsserver.rule=Host(\`${MAVIS_URL}\`) && PathPrefix(\`/rdp\`)"
+      - "traefik.http.routers.mavis-rdpwsserver.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`) && PathPrefix(\`/rdp\`)"
       - "traefik.http.routers.mavis-rdpwsserver.entrypoints=websecure"
       - "traefik.http.routers.mavis-rdpwsserver.priority=2"
       - "traefik.http.routers.mavis-rdpwsserver.tls=true"
@@ -360,7 +360,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.mavis-pgweb.loadbalancer.server.port=8081"
-      - "traefik.http.routers.mavis-pgweb.rule=Host(\`pgweb.${MAVIS_URL}\`)"
+      - "traefik.http.routers.mavis-pgweb.rule=Host(\`pgweb.\${MAVIS_URL_WITHOUT_PROTOCOL}\`)"
       - "traefik.http.routers.mavis-pgweb.entrypoints=websecure"
       - "traefik.http.routers.mavis-pgweb.service=mavis-pgweb@docker"
       - "traefik.http.routers.mavis-pgweb.tls=true"
@@ -424,7 +424,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.mavis-flower.loadbalancer.server.port=5555"
-      - "traefik.http.routers.mavis-flower.rule=Host(\`flower.${MAVIS_URL}\`)"
+      - "traefik.http.routers.mavis-flower.rule=Host(\`flower.\${MAVIS_URL_WITHOUT_PROTOCOL}\`)"
       - "traefik.http.routers.mavis-flower.entrypoints=websecure"
       - "traefik.http.routers.mavis-flower.middlewares=inner-ip@file,admin-auth@docker"
       - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
@@ -830,7 +830,7 @@ do_install() {
 		deprecation_notice "$lsb_dist" "$dist_version"
                 exit 1
 		;;
-	centos.8)
+	centos.6|centos.8|centos.9)
 		deprecation_notice "$lsb_dist" "$dist_version"
 		exit 1
 	    ;;
@@ -1103,7 +1103,6 @@ do_install() {
 
 # wrapped up in a function so that we have some protection against only getting
 # half the file during "curl | sh"
-check_environment
 if command_exists docker && [ x"$DRY_RUN" != x"1" ]; then
 	remove_docker
 fi
