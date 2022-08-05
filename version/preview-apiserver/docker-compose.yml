@@ -1,0 +1,271 @@
+version: "3.3"
+
+x-logging:
+  &dev-logging
+  driver: journald
+
+services:
+  traefik:
+    restart: always
+    image: "cr-preview.pentium.network/mavisdev/traefik:v2.6.1"
+    container_name: "traefik"
+    logging: *dev-logging
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.file.filename=/configuration/certificates.yaml"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "8080:8080"
+      - "443:443"
+    networks:
+      - mavis
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+#      - "./configuration/:/configuration/"
+
+
+  mavis-apiserver:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/apiserver:${GITHUB_REF_NAME}
+    container_name: mavis-apiserver
+    depends_on:
+      - mavis-postgres
+    env_file:
+      - .env
+      - ../.env
+    ports:
+      - "8000"
+    networks:
+      - mavis
+    command: "uvicorn mavis.apiserver.main:app --host 0.0.0.0 --port 8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mavis-apiserver.service=mavis-apiserver@docker"
+      - "traefik.http.services.mavis-apiserver.loadbalancer.server.port=8000"
+      - "traefik.http.routers.mavis-apiserver.rule=Host(`${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/apistatic`) || PathPrefix(`/docs`) || PathPrefix(`/openapi.json`) || PathPrefix(`/auth`) || PathPrefix(`/redoc`))"
+      - "traefik.http.routers.mavis-apiserver.entrypoints=websecure"
+      - "traefik.http.routers.mavis-apiserver.priority=2"
+      - "traefik.http.routers.mavis-apiserver.tls=true"
+
+  mavis-f2e:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/f2e:${GITHUB_REF_NAME}
+    container_name: mavis-f2e
+    depends_on:
+      - mavis-apiserver
+    env_file:
+      - .env
+      - ../.env
+    networks:
+      - mavis
+    expose:
+      - "3000"
+    volumes:
+      - ../../data/ssh-proxy:/usr/share/nginx/html/assets/videos/sshrec:z
+      - ../../data/rdp-proxy:/usr/share/nginx/html/assets/videos/rdprec:z
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.mavis-f2e.loadbalancer.server.port=3000"
+      - "traefik.http.routers.mavis-f2e.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.mavis-f2e.entrypoints=websecure"
+      - "traefik.http.routers.mavis-f2e.service=mavis-f2e@docker"
+      - "traefik.http.routers.mavis-f2e.priority=1"
+      - "traefik.http.routers.mavis-f2e.tls=true"
+
+  mavis-postgres:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/postgres:12.3
+    container_name: mavis-postgres
+    volumes:
+      - ../../data/maindb:/var/lib/postgresql/data:Z
+      - ../../backups/db:/backups:z
+    env_file:
+      - .env
+      - ../.env
+    networks:
+      - mavis
+    logging: *dev-logging
+
+  mavis-sshserver:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/sshserver:${GITHUB_REF_NAME}
+    container_name: mavis-sshserver
+    depends_on:
+      - mavis-postgres
+      - mavis-apiserver
+    env_file:
+      - .env
+      - ../.env
+    networks:
+      - mavis
+    expose:
+      - "4002"
+    volumes:
+      - ../../data/ssh-proxy:/tmp/sshrec:z
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mavis-sshserver.service=mavis-sshserver@docker"
+      - "traefik.http.services.mavis-sshserver.loadbalancer.server.port=4002"
+      - "traefik.http.routers.mavis-sshserver.rule=Host(`${DOMAIN}`) && PathPrefix(`/ssh`)"
+      - "traefik.http.routers.mavis-sshserver.entrypoints=websecure"
+      - "traefik.http.routers.mavis-sshserver.priority=3"
+      - "traefik.http.routers.mavis-sshserver.tls=true"
+
+  mavis-rdpguacd:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/rdpguacd:${GITHUB_REF_NAME}
+    container_name: mavis-rdpguacd
+    env_file:
+      - .env
+      - ../.env
+    networks:
+      - mavis
+    expose:
+      - "4822"
+    volumes:
+      - ../../data/rdp-proxy:/tmp/rdprec:z
+    logging: *dev-logging
+
+  mavis-rdpwsserver:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/rdpwsserver:${GITHUB_REF_NAME}
+    container_name: mavis-rdpwsserver
+    depends_on:
+      - mavis-postgres
+      - mavis-apiserver
+      - mavis-rdpguacd
+    env_file:
+      - .env
+      - ../.env
+    networks:
+      - mavis
+    expose:
+      - "4003"
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mavis-rdpwsserver.service=mavis-rdpwsserver@docker"
+      - "traefik.http.services.mavis-rdpwsserver.loadbalancer.server.port=4003"
+      - "traefik.http.routers.mavis-rdpwsserver.rule=Host(`${DOMAIN}`) && PathPrefix(`/rdp`)"
+      - "traefik.http.routers.mavis-rdpwsserver.entrypoints=websecure"
+      - "traefik.http.routers.mavis-rdpwsserver.priority=2"
+      - "traefik.http.routers.mavis-rdpwsserver.tls=true"
+
+  mavis-rdpguacenc:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/rdpguacenc:${GITHUB_REF_NAME}
+    container_name: mavis-rdpguacenc
+    depends_on:
+      - mavis-rdpguacd
+    env_file:
+      - .env
+      - ../.env
+    networks:
+      - mavis
+    volumes:
+      - ../../data/rdp-proxy:/tmp/rdprec:z
+    logging: *dev-logging
+
+  mavis-pgweb:
+    restart: always
+    container_name: mavis-pgweb
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/sosedoff/pgweb
+    links:
+      - mavis-postgres:postgres
+    env_file:
+      - .env
+      - ../.env
+    depends_on:
+      - mavis-postgres
+    networks:
+      - mavis
+    expose:
+      - "8081"
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.mavis-pgweb.loadbalancer.server.port=8081"
+      - "traefik.http.routers.mavis-pgweb.rule=Host(`pgweb.${DOMAIN}`)"
+      - "traefik.http.routers.mavis-pgweb.entrypoints=websecure"
+      - "traefik.http.routers.mavis-pgweb.service=mavis-pgweb@docker"
+      - "traefik.http.routers.mavis-pgweb.tls=true"
+
+  mavis-redis:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/redis:5.0
+    container_name: mavis-redis
+    networks:
+      - mavis
+    logging: *dev-logging
+
+  mavis-task-runner:
+    image: cr-preview.pentium.network/mavisdev/apiserver:${GITHUB_REF_NAME}
+    container_name: mavis-task-runner
+    volumes:
+      - ../../logs/scripts:/app/logs/scripts:Z
+      - ../../logs:/app/logs
+    depends_on:
+      - mavis-redis
+      - mavis-postgres
+    env_file:
+      - .env
+      - ../.env
+    ports: []
+    command: "celery -A mavis.apiserver.main.celery_app worker --loglevel=info"
+    networks:
+      - mavis
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=false"
+
+  mavis-beat:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/apiserver:${GITHUB_REF_NAME}
+    container_name: mavis-beat
+    depends_on:
+      - mavis-redis
+      - mavis-postgres
+    env_file:
+      - .env
+      - ../.env
+    ports: []
+    command: "celery --app=mavis.apiserver.main.celery_app beat -l info"
+    networks:
+      - mavis
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=false"
+
+  mavis-flower:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/apiserver:${GITHUB_REF_NAME}
+    container_name: mavis-flower
+    depends_on:
+      - mavis-postgres
+    env_file:
+      - .env
+      - ../.env
+    expose:
+      - "5555"
+    command: ["celery", "flower", "--app=mavis.apiserver.main.celery_app", "--broker=${CELERY_BROKER_URL}",
+     "--basic_auth=${CELERY_FLOWER_USER}:${CELERY_FLOWER_PASSWORD}"]
+    networks:
+      - mavis
+    logging: *dev-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.mavis-flower.loadbalancer.server.port=5555"
+      - "traefik.http.routers.mavis-flower.rule=Host(`flower.${DOMAIN}`)"
+      - "traefik.http.routers.mavis-flower.entrypoints=websecure"
+      - "traefik.http.routers.mavis-flower.middlewares=inner-ip@file,admin-auth@docker"
+      - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
+      - "traefik.http.routers.mavis-flower.tls.certresolver=letsencrypt"
+
+networks:
+  mavis:
+    name: mavis
