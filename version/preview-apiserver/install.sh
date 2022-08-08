@@ -127,7 +127,7 @@ check_environment() {
 }
 
 keeper_cli() {
-	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} cr-preview.pentium.network/mavisdev/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
+	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
 	if echo "${result}" |grep "Not Found Item";then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
@@ -204,7 +204,7 @@ install_mavis() {
 
 
 
-		echo "MAVIS_URL"=https://${DOMAIN} >> ${INSTALL_DIR}/config/.env
+		echo "MAVIS_URL"=https://\${DOMAIN} >> ${INSTALL_DIR}/config/.env
 	    echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >> ${INSTALL_DIR}/config/.env
         echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
         echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
@@ -256,8 +256,8 @@ Environment=COMPOSE_HTTP_TIMEOUT=600
 ExecStartPre=/bin/sh -c "/usr/bin/docker network create --driver bridge mavis || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker rm keeper --force || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker pull cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
-ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} --env-file ${INSTALL_DIR}/config/.env cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
-ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} --env-file ${INSTALL_DIR}/config/.env cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR}  -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
+ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
 StandardOutput=syslog
 Restart=always
 Type=simple
@@ -928,5 +928,5 @@ echo "         /:::/    /               /:::/    /                              
 echo "         \::/    /                \::/    /                                         \::/    /                \::/    / "
 echo "          \/____/                  \/____/                                           \/____/                  \/____/ "
 echo -e "---------   ${COLOR_GREEN}Install mavis keeper success , please check it${COLOR_REST}"
-echo -e "---------   ${COLOR_GREEN}Your MAVIS_URL is https://[${DOMAIN}]${COLOR_REST}"
+echo -e "---------   ${COLOR_GREEN}Your MAVIS_URL is [https://${DOMAIN}]${COLOR_REST}"
 echo -e "---------   ${COLOR_GREEN}Your default account and password is [admin/admin]${COLOR_REST}"
