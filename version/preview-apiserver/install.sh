@@ -6,7 +6,7 @@ set -e
 
 MAVIS_STATIC_PAGE=https://pnetwork.github.io/release.mavis
 MAVIS_VERSION="preview-apiserver"
-MAVIS_REPO=cr-preview.pentium.network/mavisdev
+#MAVIS_REPO=cr-preview.pentium.network/mavisdev
 VERSION="20.10"
 CHANNEL="stable"
 DOWNLOAD_URL="https://download.docker.com"
@@ -127,7 +127,7 @@ check_environment() {
 }
 
 keeper_cli() {
-	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} /keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
+	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} cr-preview.pentium.network/mavisdev/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
 	if echo "${result}" |grep "Not Found Item";then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
@@ -142,7 +142,7 @@ install_mavis() {
 
 
     ## Remove old container
-    local old_list="$(echo $($sh_c "docker ps" |grep |awk '{print $1}')  )"
+    local old_list="$(echo $($sh_c "docker ps" |grep cr-preview.pentium.network/mavisdev|awk '{print $1}')  )"
     echo ${old_list}
     if [ x"$old_list" != x"" ];then
             $sh_c "docker rm --force ${old_list} || true"
@@ -255,9 +255,9 @@ After=docker.service
 Environment=COMPOSE_HTTP_TIMEOUT=600
 ExecStartPre=/bin/sh -c "/usr/bin/docker network create --driver bridge mavis || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker rm keeper --force || /bin/true"
-ExecStartPre=/bin/sh -c "/usr/bin/docker pull /keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
-ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} --env-file ${INSTALL_DIR}/config/.env /keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
-ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} --env-file ${INSTALL_DIR}/config/.env /keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
+ExecStartPre=/bin/sh -c "/usr/bin/docker pull cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} --env-file ${INSTALL_DIR}/config/.env cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
+ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} --env-file ${INSTALL_DIR}/config/.env cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
 StandardOutput=syslog
 Restart=always
 Type=simple
