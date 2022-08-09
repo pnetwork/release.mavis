@@ -207,7 +207,7 @@ install_mavis() {
 		echo "MAVIS_URL"=https://\${DOMAIN} >> ${INSTALL_DIR}/config/.env
 	    echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >> ${INSTALL_DIR}/config/.env
         echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
-        echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
+        echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/rdp-proxy}" >> ${INSTALL_DIR}/config/.env
 		echo "\n\n\n### It is not recommended to modify, if you must modify please make sure you know what you are doing ###" >> ${INSTALL_DIR}/config/.env
 		echo "INSTALL_DIR=${INSTALL_DIR:-/opt/mavis}" >> ${INSTALL_DIR}/config/.env
 		echo "MASTER_KEYS=${MASTER_KEYS:-$(keeper_cli generate-key MASTER_KEYS)}" >> ${INSTALL_DIR}/config/.env
