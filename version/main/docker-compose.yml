@@ -28,7 +28,7 @@ services:
 
   mavis-apiserver:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/apiserver:main
+    image: cr-preview.pentium.network/mavisdev/apiserver:
     container_name: mavis-apiserver
     depends_on:
       - mavis-postgres
@@ -51,7 +51,7 @@ services:
 
   mavis-f2e:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/f2e:main
+    image: cr-preview.pentium.network/mavisdev/f2e:
     container_name: mavis-f2e
     depends_on:
       - mavis-apiserver
@@ -91,7 +91,7 @@ services:
 
   mavis-ssh-proxy:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/ssh-proxy:main
+    image: cr-preview.pentium.network/mavisdev/ssh-proxy:
     container_name: mavis-ssh-proxy
     depends_on:
       - mavis-postgres
@@ -117,7 +117,7 @@ services:
 
   mavis-rdpguacd:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpguacd:main
+    image: cr-preview.pentium.network/mavisdev/rdpguacd:
     container_name: mavis-rdpguacd
     env_file:
       - .env
@@ -132,7 +132,7 @@ services:
 
   mavis-rdpwsserver:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpwsserver:main
+    image: cr-preview.pentium.network/mavisdev/rdpwsserver:
     container_name: mavis-rdpwsserver
     depends_on:
       - mavis-postgres
@@ -157,7 +157,7 @@ services:
 
   mavis-rdp-proxy:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdp-proxy:main
+    image: cr-preview.pentium.network/mavisdev/rdp-proxy:
     container_name: mavis-rdp-proxy
     depends_on:
       - mavis-postgres
@@ -184,7 +184,7 @@ services:
 
   mavis-rdpguacenc:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpguacenc:main
+    image: cr-preview.pentium.network/mavisdev/rdpguacenc:
     container_name: mavis-rdpguacenc
     depends_on:
       - mavis-rdpguacd
@@ -233,7 +233,7 @@ services:
     logging: *dev-logging
 
   mavis-task-runner:
-    image: cr-preview.pentium.network/mavisdev/apiserver:main
+    image: cr-preview.pentium.network/mavisdev/apiserver:
     container_name: mavis-task-runner
     volumes:
       - ../../logs/scripts:/app/logs/scripts:Z
@@ -254,7 +254,7 @@ services:
 
   mavis-beat:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/apiserver:main
+    image: cr-preview.pentium.network/mavisdev/apiserver:
     container_name: mavis-beat
     depends_on:
       - mavis-redis
@@ -272,7 +272,7 @@ services:
 
   mavis-flower:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/apiserver:main
+    image: cr-preview.pentium.network/mavisdev/apiserver:
     container_name: mavis-flower
     depends_on:
       - mavis-postgres
