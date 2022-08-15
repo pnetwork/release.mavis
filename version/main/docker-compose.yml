@@ -89,31 +89,31 @@ services:
       - mavis
     logging: *dev-logging
 
-  mavis-sshserver:
+  mavis-ssh-proxy:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/sshserver:main
-    container_name: mavis-sshserver
+    image: cr-preview.pentium.network/mavisdev/ssh-proxy:main
+    container_name: mavis-ssh-proxy
     depends_on:
       - mavis-postgres
-      - mavis-apiserver
+      - mavis-apisite
     env_file:
-      - .env
+      - ./.env
       - ../.env
     networks:
       - mavis
     expose:
       - "4002"
     volumes:
-      - ../../data/ssh-proxy:/tmp/sshrec:z
+      - ./data/ssh-proxy:/opt/mavis/data/ssh-proxy:Z
     logging: *dev-logging
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mavis-sshserver.service=mavis-sshserver@docker"
-      - "traefik.http.services.mavis-sshserver.loadbalancer.server.port=4002"
-      - "traefik.http.routers.mavis-sshserver.rule=PathPrefix(`/ssh`)"
-      - "traefik.http.routers.mavis-sshserver.entrypoints=websecure"
-      - "traefik.http.routers.mavis-sshserver.priority=3"
-      - "traefik.http.routers.mavis-sshserver.tls=true"
+      - "traefik.http.routers.mavis-ssh-proxy.service=mavis-ssh-proxy@docker"
+      - "traefik.http.services.mavis-ssh-proxy.loadbalancer.server.port=4002"
+      - "traefik.http.routers.mavis-ssh-proxy.rule=PathPrefix(`/ssh`)"
+      - "traefik.http.routers.mavis-ssh-proxy.entrypoints=websecure"
+      - "traefik.http.routers.mavis-ssh-proxy.priority=3"
+      - "traefik.http.routers.mavis-ssh-proxy.tls=true"
 
   mavis-rdpguacd:
     restart: always
@@ -154,6 +154,33 @@ services:
       - "traefik.http.routers.mavis-rdpwsserver.entrypoints=websecure"
       - "traefik.http.routers.mavis-rdpwsserver.priority=2"
       - "traefik.http.routers.mavis-rdpwsserver.tls=true"
+
+  mavis-rdp-proxy:
+    restart: always
+    image: cr-preview.pentium.network/mavisdev/rdp-proxy:main
+    container_name: mavis-rdp-proxy
+    depends_on:
+      - mavis-postgres
+      - mavis-apiserver
+      - mavis-rdpguacd
+    env_file:
+      - ./.env
+      - ../.env
+    networks:
+      - mavis
+    expose:
+      - "4003"
+    logging: *dev-logging
+    volumes:
+      - ./data/rdp-proxy:/opt/rdp-proxy:Z
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mavis-rdp-proxy.service=mavis-rdp-proxy@docker"
+      - "traefik.http.services.mavis-rdp-proxy.loadbalancer.server.port=4003"
+      - "traefik.http.routers.mavis-rdp-proxy.rule=PathPrefix(`/rdp`)"
+      - "traefik.http.routers.mavis-rdp-proxy.entrypoints=websecure"
+      - "traefik.http.routers.mavis-rdp-proxy.priority=2"
+      - "traefik.http.routers.mavis-rdp-proxy.tls=true"
 
   mavis-rdpguacenc:
     restart: always
