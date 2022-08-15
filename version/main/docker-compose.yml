@@ -35,6 +35,9 @@ services:
     env_file:
       - .env
       - ../.env
+    volumes:
+      - ./data/ssh-proxy:/opt/ssh-proxy:Z
+      - ./data/media:/opt/media:Z
     ports:
       - "8000"
     networks:
@@ -95,7 +98,6 @@ services:
     container_name: mavis-ssh-proxy
     depends_on:
       - mavis-postgres
-      - mavis-apisite
     env_file:
       - ./.env
       - ../.env
