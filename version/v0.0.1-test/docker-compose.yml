@@ -7,7 +7,7 @@ x-logging:
 services:
   traefik:
     restart: always
-    image: "cr-preview.pentium.network/mavisdev/traefik:v2.6.1"
+    image: "gcr.io/mavis-license-server-stage/traefik:v2.6.1"
     container_name: "traefik"
     logging: *dev-logging
     command:
@@ -28,13 +28,16 @@ services:
 
   mavis-apiserver:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/apiserver:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/apiserver:v0.0.1-test
     container_name: mavis-apiserver
     depends_on:
       - mavis-postgres
     env_file:
       - .env
       - ../.env
+    volumes:
+      - ./data/ssh-proxy:/opt/ssh-proxy:Z
+      - ./data/media:/opt/media:Z
     ports:
       - "8000"
     networks:
@@ -51,7 +54,7 @@ services:
 
   mavis-f2e:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/f2e:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/f2e:v0.0.1-test
     container_name: mavis-f2e
     depends_on:
       - mavis-apiserver
@@ -77,7 +80,7 @@ services:
 
   mavis-postgres:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/postgres:12.3
+    image: gcr.io/mavis-license-server-stage/postgres:12.3
     container_name: mavis-postgres
     volumes:
       - ../../data/maindb:/var/lib/postgresql/data:Z
@@ -91,11 +94,10 @@ services:
 
   mavis-ssh-proxy:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/ssh-proxy:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/ssh-proxy:v0.0.1-test
     container_name: mavis-ssh-proxy
     depends_on:
       - mavis-postgres
-      - mavis-apisite
     env_file:
       - ./.env
       - ../.env
@@ -117,7 +119,7 @@ services:
 
   mavis-rdpguacd:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpguacd:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/rdpguacd:v0.0.1-test
     container_name: mavis-rdpguacd
     env_file:
       - .env
@@ -132,7 +134,7 @@ services:
 
   mavis-rdpwsserver:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpwsserver:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/rdpwsserver:v0.0.1-test
     container_name: mavis-rdpwsserver
     depends_on:
       - mavis-postgres
@@ -157,7 +159,7 @@ services:
 
   mavis-rdp-proxy:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdp-proxy:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/rdp-proxy:v0.0.1-test
     container_name: mavis-rdp-proxy
     depends_on:
       - mavis-postgres
@@ -184,7 +186,7 @@ services:
 
   mavis-rdpguacenc:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpguacenc:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/rdpguacenc:v0.0.1-test
     container_name: mavis-rdpguacenc
     depends_on:
       - mavis-rdpguacd
@@ -201,7 +203,7 @@ services:
     restart: always
     container_name: mavis-pgweb
     restart: always
-    image: cr-preview.pentium.network/mavisdev/sosedoff/pgweb
+    image: gcr.io/mavis-license-server-stage/sosedoff/pgweb
     links:
       - mavis-postgres:postgres
     env_file:
@@ -226,14 +228,14 @@ services:
 
   mavis-redis:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/redis:5.0
+    image: gcr.io/mavis-license-server-stage/redis:5.0
     container_name: mavis-redis
     networks:
       - mavis
     logging: *dev-logging
 
   mavis-task-runner:
-    image: cr-preview.pentium.network/mavisdev/apiserver:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/apiserver:v0.0.1-test
     container_name: mavis-task-runner
     volumes:
       - ../../logs/scripts:/app/logs/scripts:Z
@@ -254,7 +256,7 @@ services:
 
   mavis-beat:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/apiserver:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/apiserver:v0.0.1-test
     container_name: mavis-beat
     depends_on:
       - mavis-redis
@@ -272,7 +274,7 @@ services:
 
   mavis-flower:
     restart: always
-    image: cr-preview.pentium.network/mavisdev/apiserver:v0.0.1-test
+    image: gcr.io/mavis-license-server-stage/apiserver:v0.0.1-test
     container_name: mavis-flower
     depends_on:
       - mavis-postgres
