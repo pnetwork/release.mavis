@@ -5,7 +5,7 @@ set -e
 
 
 MAVIS_STATIC_PAGE=https://pnetwork.github.io/release.mavis
-MAVIS_VERSION=${INPUT_IMAGE_TAG}
+MAVIS_VERSION=preview-apiserver
 #MAVIS_REPO=
 VERSION="20.10"
 CHANNEL="stable"
