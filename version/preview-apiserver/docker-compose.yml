@@ -132,31 +132,6 @@ services:
       - ../../data/rdp-proxy:/tmp/rdprec:z
     logging: *dev-logging
 
-  mavis-rdpwsserver:
-    restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpwsserver:preview-apiserver
-    container_name: mavis-rdpwsserver
-    depends_on:
-      - mavis-postgres
-      - mavis-apiserver
-      - mavis-rdpguacd
-    env_file:
-      - .env
-      - ../.env
-    networks:
-      - mavis
-    expose:
-      - "4003"
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mavis-rdpwsserver.service=mavis-rdpwsserver@docker"
-      - "traefik.http.services.mavis-rdpwsserver.loadbalancer.server.port=4003"
-      - "traefik.http.routers.mavis-rdpwsserver.rule=PathPrefix(`/rdp`)"
-      - "traefik.http.routers.mavis-rdpwsserver.entrypoints=websecure"
-      - "traefik.http.routers.mavis-rdpwsserver.priority=2"
-      - "traefik.http.routers.mavis-rdpwsserver.tls=true"
-
   mavis-rdp-proxy:
     restart: always
     image: cr-preview.pentium.network/mavisdev/rdp-proxy:preview-apiserver
