@@ -7,7 +7,7 @@ x-logging:
 services:
   traefik:
     restart: always
-    image: "gcr.io/mavis-license-server-stage/traefik:v2.6.1"
+    image: "cr-preview.pentium.network/mavisdev/traefik:v2.6.1"
     container_name: "traefik"
     logging: *dev-logging
     command:
@@ -28,7 +28,7 @@ services:
 
   mavis-apiserver:
     restart: always
-    image: gcr.io/mavis-license-server-stage/apiserver:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/apiserver:preview-apiserver
     container_name: mavis-apiserver
     depends_on:
       - mavis-postgres
@@ -54,7 +54,7 @@ services:
 
   mavis-f2e:
     restart: always
-    image: gcr.io/mavis-license-server-stage/f2e:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/f2e:preview-apiserver
     container_name: mavis-f2e
     depends_on:
       - mavis-apiserver
@@ -80,7 +80,7 @@ services:
 
   mavis-postgres:
     restart: always
-    image: gcr.io/mavis-license-server-stage/postgres:12.3
+    image: cr-preview.pentium.network/mavisdev/postgres:12.3
     container_name: mavis-postgres
     volumes:
       - ../../data/maindb:/var/lib/postgresql/data:Z
@@ -94,7 +94,7 @@ services:
 
   mavis-ssh-proxy:
     restart: always
-    image: gcr.io/mavis-license-server-stage/ssh-proxy:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/ssh-proxy:preview-apiserver
     container_name: mavis-ssh-proxy
     depends_on:
       - mavis-postgres
@@ -119,7 +119,7 @@ services:
 
   mavis-rdpguacd:
     restart: always
-    image: gcr.io/mavis-license-server-stage/rdpguacd:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/rdpguacd:preview-apiserver
     container_name: mavis-rdpguacd
     env_file:
       - .env
@@ -134,7 +134,7 @@ services:
 
   mavis-rdpwsserver:
     restart: always
-    image: gcr.io/mavis-license-server-stage/rdpwsserver:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/rdpwsserver:preview-apiserver
     container_name: mavis-rdpwsserver
     depends_on:
       - mavis-postgres
@@ -159,7 +159,7 @@ services:
 
   mavis-rdp-proxy:
     restart: always
-    image: gcr.io/mavis-license-server-stage/rdp-proxy:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/rdp-proxy:preview-apiserver
     container_name: mavis-rdp-proxy
     depends_on:
       - mavis-postgres
@@ -186,7 +186,7 @@ services:
 
   mavis-rdpguacenc:
     restart: always
-    image: gcr.io/mavis-license-server-stage/rdpguacenc:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/rdpguacenc:preview-apiserver
     container_name: mavis-rdpguacenc
     depends_on:
       - mavis-rdpguacd
@@ -203,7 +203,7 @@ services:
     restart: always
     container_name: mavis-pgweb
     restart: always
-    image: gcr.io/mavis-license-server-stage/sosedoff/pgweb
+    image: cr-preview.pentium.network/mavisdev/sosedoff/pgweb
     links:
       - mavis-postgres:postgres
     env_file:
@@ -228,14 +228,14 @@ services:
 
   mavis-redis:
     restart: always
-    image: gcr.io/mavis-license-server-stage/redis:5.0
+    image: cr-preview.pentium.network/mavisdev/redis:5.0
     container_name: mavis-redis
     networks:
       - mavis
     logging: *dev-logging
 
   mavis-task-runner:
-    image: gcr.io/mavis-license-server-stage/apiserver:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/apiserver:preview-apiserver
     container_name: mavis-task-runner
     volumes:
       - ../../logs/scripts:/app/logs/scripts:Z
@@ -256,7 +256,7 @@ services:
 
   mavis-beat:
     restart: always
-    image: gcr.io/mavis-license-server-stage/apiserver:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/apiserver:preview-apiserver
     container_name: mavis-beat
     depends_on:
       - mavis-redis
@@ -274,7 +274,7 @@ services:
 
   mavis-flower:
     restart: always
-    image: gcr.io/mavis-license-server-stage/apiserver:preview-apiserver
+    image: cr-preview.pentium.network/mavisdev/apiserver:preview-apiserver
     container_name: mavis-flower
     depends_on:
       - mavis-postgres
