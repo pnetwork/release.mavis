@@ -118,10 +118,12 @@ check_environment() {
 	5)
 		echo -e "${COLOR_RED}Can not connect to ${DOWNLOAD_URL}${COLOR_REST}"
 		echo -e "${COLOR_RED}Check network status failed${COLOR_REST}"
+                exit 1
 		;;
 	*)
 		echo -e "The network is down or very slow"
 		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
+                exit 1 
 		;;
 	esac
 }
