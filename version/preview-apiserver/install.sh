@@ -5,8 +5,8 @@ set -e
 
 
 MAVIS_STATIC_PAGE=https://pnetwork.github.io/release.mavis
-MAVIS_VERSION="preview-apiserver"
-#MAVIS_REPO=cr-preview.pentium.network/mavisdev
+MAVIS_VERSION=preview-apiserver
+#MAVIS_REPO=
 VERSION="20.10"
 CHANNEL="stable"
 DOWNLOAD_URL="https://download.docker.com"
@@ -127,7 +127,7 @@ check_environment() {
 }
 
 keeper_cli() {
-	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
+	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} gcr.io/mavis-license-server-stage/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
 	if echo "${result}" |grep "Not Found Item";then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
@@ -142,7 +142,7 @@ install_mavis() {
 
 
     ## Remove old container
-    local old_list="$(echo $($sh_c "docker ps" |grep cr-preview.pentium.network/mavisdev|awk '{print $1}')  )"
+    local old_list="$(echo $($sh_c "docker ps" |grep gcr.io/mavis-license-server-stage|awk '{print $1}')  )"
     echo ${old_list}
     if [ x"$old_list" != x"" ];then
             $sh_c "docker rm --force ${old_list} || true"
@@ -207,7 +207,7 @@ install_mavis() {
 		echo "MAVIS_URL"=https://\${DOMAIN} >> ${INSTALL_DIR}/config/.env
 	    echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >> ${INSTALL_DIR}/config/.env
         echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
-        echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
+        echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/rdp-proxy}" >> ${INSTALL_DIR}/config/.env
 		echo "\n\n\n### It is not recommended to modify, if you must modify please make sure you know what you are doing ###" >> ${INSTALL_DIR}/config/.env
 		echo "INSTALL_DIR=${INSTALL_DIR:-/opt/mavis}" >> ${INSTALL_DIR}/config/.env
 		echo "MASTER_KEYS=${MASTER_KEYS:-$(keeper_cli generate-key MASTER_KEYS)}" >> ${INSTALL_DIR}/config/.env
@@ -255,9 +255,9 @@ After=docker.service
 Environment=COMPOSE_HTTP_TIMEOUT=600
 ExecStartPre=/bin/sh -c "/usr/bin/docker network create --driver bridge mavis || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker rm keeper --force || /bin/true"
-ExecStartPre=/bin/sh -c "/usr/bin/docker pull cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
-ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR}  -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
-ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
+ExecStartPre=/bin/sh -c "/usr/bin/docker pull gcr.io/mavis-license-server-stage/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR}  -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} gcr.io/mavis-license-server-stage/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
+ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} gcr.io/mavis-license-server-stage/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
 StandardOutput=syslog
 Restart=always
 Type=simple
