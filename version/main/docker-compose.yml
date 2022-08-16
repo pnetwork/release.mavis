@@ -159,20 +159,6 @@ services:
       - "traefik.http.routers.mavis-rdp-proxy.priority=2"
       - "traefik.http.routers.mavis-rdp-proxy.tls=true"
 
-  mavis-rdpguacenc:
-    restart: always
-    image: cr-preview.pentium.network/mavisdev/rdpguacenc:main
-    container_name: mavis-rdpguacenc
-    depends_on:
-      - mavis-rdpguacd
-    env_file:
-      - .env
-      - ../.env
-    networks:
-      - mavis
-    volumes:
-      - ../../data/rdp-proxy:/tmp/rdprec:z
-    logging: *dev-logging
 
   mavis-pgweb:
     restart: always
