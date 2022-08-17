@@ -234,7 +234,7 @@ install_mavis() {
 
 		while read line ;do
                 	v=$(echo "${line}" | cut -d '=' -f 1)
-                	if /usr/bin/env |grep "${v}" && [ -n "${v}" ] && [ -z $(cat  ${INSTALL_DIR}/config/.env |grep "${v}=") ] ;then
+                	if /usr/bin/env |grep "${v}" > /dev/null 2>&1 && [ -n "${v}" ] && [ -z $(cat  ${INSTALL_DIR}/config/.env |grep "${v}=") ] ;then
                         	/usr/bin/env |grep "${v}=" >> ${INSTALL_DIR}/config/.env
                 	fi
         	done < ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
