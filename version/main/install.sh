@@ -3,6 +3,7 @@ set -e
 # Docker CE for Linux installation script
 # SCRIPT_COMMIT_SHA="b2e29ef7a9a89840d2333637f7d1900a83e7153f"
 
+
 MAVIS_STATIC_PAGE=https://pnetwork.github.io/release.mavis
 MAVIS_VERSION=main
 #MAVIS_REPO=
@@ -74,6 +75,7 @@ check_user() {
 
 }
 
+
 check_environment() {
 
 	## Check disk space (40GB)
@@ -116,22 +118,22 @@ check_environment() {
 	5)
 		echo -e "${COLOR_RED}Can not connect to ${DOWNLOAD_URL}${COLOR_REST}"
 		echo -e "${COLOR_RED}Check network status failed${COLOR_REST}"
-		exit 1
+                exit 1
 		;;
 	*)
 		echo -e "The network is down or very slow"
 		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
-		exit 1
+                exit 1 
 		;;
 	esac
 }
 
 keeper_cli() {
 	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/mavisdev/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
-	if echo "${result}" | grep "Not Found Item"; then
+	if echo "${result}" |grep "Not Found Item";then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
-	elif [ -z "$result" ]; then
+	elif [ -z "$result" ];then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
 	fi
@@ -140,12 +142,14 @@ keeper_cli() {
 
 install_mavis() {
 
-	## Remove old container
-	local old_list="$(echo $($sh_c "docker ps" | grep cr-preview.pentium.network/mavisdev | awk '{print $1}'))"
-	echo ${old_list}
-	if [ x"$old_list" != x"" ]; then
-		$sh_c "docker rm --force ${old_list} || true"
-	fi
+
+    ## Remove old container
+    local old_list="$(echo $($sh_c "docker ps" |grep cr-preview.pentium.network/mavisdev|awk '{print $1}')  )"
+    echo ${old_list}
+    if [ x"$old_list" != x"" ];then
+            $sh_c "docker rm --force ${old_list} || true"
+    fi
+
 
 	## check config dir if exist
 	if [ -d "${INSTALL_DIR}/config" ]; then
@@ -155,19 +159,27 @@ install_mavis() {
 		$sh_c "rm -rf ${INSTALL_DIR}/config/*"
 	fi
 
-	# Generate Directory Structure
-	for i in ${DIR_LIST}; do
-		$sh_c "mkdir -p ${INSTALL_DIR}/$i"
-	done
-	$sh_c "touch ${INSTALL_DIR}/config/current_version ${INSTALL_DIR}/config/old_version ${INSTALL_DIR}/config/${MAVIS_VERSION}"
-	$sh_c "echo ${MAVIS_VERSION} > ${INSTALL_DIR}/config/current_version"
-	$sh_c "chown -R ${user}:${user} ${INSTALL_DIR}"
+    # Generate Directory Structure
+    for i in ${DIR_LIST}; do
+        	$sh_c "mkdir -p ${INSTALL_DIR}/$i"
+    done
+    $sh_c "touch ${INSTALL_DIR}/config/current_version ${INSTALL_DIR}/config/old_version ${INSTALL_DIR}/config/${MAVIS_VERSION}"
+    $sh_c "echo ${MAVIS_VERSION} > ${INSTALL_DIR}/config/current_version"
+    $sh_c "chown -R ${user}:${user} ${INSTALL_DIR}"
+
+
+
 
 	curl ${MAVIS_STATIC_PAGE}/version/${MAVIS_VERSION}/.env -o ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
 	curl ${MAVIS_STATIC_PAGE}/version/${MAVIS_VERSION}/docker-compose.yml -o ${INSTALL_DIR}/config/${MAVIS_VERSION}/docker-compose.yml
 	chmod 444 ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
 
-	if [ x"${first_install}" != x"false" ]; then
+
+
+	if [ x"${first_install}" != x"false" ];then
+
+
+
 
 		## Get MAVIS_URL
 		if [ -z "$MAVIS_URL" ]; then
@@ -176,56 +188,64 @@ install_mavis() {
 			echo
 			if [ -z "$PUBLIC_IP" ]; then
 				DOMAIN="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')"
-				echo DOMAIN="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')" >>${INSTALL_DIR}/config/.env
+				echo DOMAIN="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')" >> ${INSTALL_DIR}/config/.env
 			else
 				DOMAIN="${PUBLIC_IP}"
-				echo DOMAIN="${PUBLIC_IP}" >>${INSTALL_DIR}/config/.env
+				echo DOMAIN="${PUBLIC_IP}" >> ${INSTALL_DIR}/config/.env
 			fi
 		else
-			DOMAIN=$(echo $MAVIS_URL | sed 's/https\?:\/\///g')
-			echo DOMAIN=$(echo $MAVIS_URL | sed 's/https\?:\/\///g') >>${INSTALL_DIR}/config/.env
+			DOMAIN=$(echo $MAVIS_URL|sed 's/https\?:\/\///g')
+			echo DOMAIN=$(echo $MAVIS_URL|sed 's/https\?:\/\///g') >> ${INSTALL_DIR}/config/.env
 		fi
 
-		## Generate POSTGRES_PASSWORD
-		if [ -z "$POSTGRES_PASSWORD" ]; then
-			POSTGRES_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 13)
-		fi
 
-		echo "MAVIS_URL"=https://\${DOMAIN} >>${INSTALL_DIR}/config/.env
-		echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >>${INSTALL_DIR}/config/.env
-		echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >>${INSTALL_DIR}/config/.env
-		echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/rdp-proxy}" >>${INSTALL_DIR}/config/.env
-		echo "\n\n\n### It is not recommended to modify, if you must modify please make sure you know what you are doing ###" >>${INSTALL_DIR}/config/.env
-		echo "INSTALL_DIR=${INSTALL_DIR:-/opt/mavis}" >>${INSTALL_DIR}/config/.env
-		echo "MASTER_KEYS=${MASTER_KEYS:-$(keeper_cli generate-key MASTER_KEYS)}" >>${INSTALL_DIR}/config/.env
-		echo "SECRET_KEY=${SECRET_KEY:-$(keeper_cli generate-key SECRET_KEY)}" >>${INSTALL_DIR}/config/.env
-		echo "GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID:-$(keeper_cli generate-key GATEWAY_CLIENT_ID)}" >>${INSTALL_DIR}/config/.env
-		echo "GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET:-$(keeper_cli generate-key GATEWAY_CLIENT_SECRET)}" >>${INSTALL_DIR}/config/.env
-		echo "POSTGRES_HOST=${POSTGRES_HOST:-mavis-postgres}" >>${INSTALL_DIR}/config/.env
-		echo "POSTGRES_PORT=${POSTGRES_PORT:-5432}" >>${INSTALL_DIR}/config/.env
-		echo "POSTGRES_DB=${POSTGRES_DB:-mavis}" >>${INSTALL_DIR}/config/.env
-		echo "POSTGRES_USER=${POSTGRES_USER:-psql}" >>${INSTALL_DIR}/config/.env
-		echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >>${INSTALL_DIR}/config/.env
-		echo "DATABASE_URL=${DATABASE_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}?sslmode=disable}" >>${INSTALL_DIR}/config/.env
-		echo "DB_URL=${DB_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}}" >>${INSTALL_DIR}/config/.env
-		echo "REDIS_HOST=${REDIS_HOST:-mavis-redis}" >>${INSTALL_DIR}/config/.env
-		echo "REDIS_PORT=${REDIS_PORT:-6379}" >>${INSTALL_DIR}/config/.env
-		echo "REDIS_URL=${REDIS_URL:-redis://\${REDIS_HOST\}:\${REDIS_PORT\}/0}" >>${INSTALL_DIR}/config/.env
-		echo "CELERY_BROKER_URL=${CELERY_BROKER_URL:-\${REDIS_URL\}}" >>${INSTALL_DIR}/config/.env
-		echo "CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-\${REDIS_URL\}}" >>${INSTALL_DIR}/config/.env
-		echo "SSH_PROXY_HOST=${SSH_PROXY_HOST:-\${DOMAIN\}}" >>${INSTALL_DIR}/config/.env
-		echo "MAVIS_HOST=${MAVIS_HOST:-\${DOMAIN\}}" >>${INSTALL_DIR}/config/.env
+        	## Generate POSTGRES_PASSWORD
+        	if [ -z "$POSTGRES_PASSWORD" ]; then
+                	POSTGRES_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 13)
+        	fi
 
-		while read line; do
-			v=$(echo "${line}" | cut -d '=' -f 1)
-			if /usr/bin/env | grep "${v}" >/dev/null 2>&1 && [ -n "${v}" ] && [ -z $(cat ${INSTALL_DIR}/config/.env | grep "${v}=") ]; then
-				/usr/bin/env | grep "${v}=" >>${INSTALL_DIR}/config/.env
-			fi
-		done <${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
+
+
+		echo "MAVIS_URL"=https://\${DOMAIN} >> ${INSTALL_DIR}/config/.env
+	    echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >> ${INSTALL_DIR}/config/.env
+        echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >> ${INSTALL_DIR}/config/.env
+        echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/rdp-proxy}" >> ${INSTALL_DIR}/config/.env
+		echo "\n\n\n### It is not recommended to modify, if you must modify please make sure you know what you are doing ###" >> ${INSTALL_DIR}/config/.env
+		echo "INSTALL_DIR=${INSTALL_DIR:-/opt/mavis}" >> ${INSTALL_DIR}/config/.env
+		echo "MASTER_KEYS=${MASTER_KEYS:-$(keeper_cli generate-key MASTER_KEYS)}" >> ${INSTALL_DIR}/config/.env
+		echo "SECRET_KEY=${SECRET_KEY:-$(keeper_cli generate-key SECRET_KEY)}" >> ${INSTALL_DIR}/config/.env
+		echo "GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID:-$(keeper_cli generate-key GATEWAY_CLIENT_ID)}" >> ${INSTALL_DIR}/config/.env
+		echo "GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET:-$(keeper_cli generate-key GATEWAY_CLIENT_SECRET)}"  >> ${INSTALL_DIR}/config/.env
+        echo "POSTGRES_HOST=${POSTGRES_HOST:-mavis-postgres}" >> ${INSTALL_DIR}/config/.env
+        echo "POSTGRES_PORT=${POSTGRES_PORT:-5432}" >> ${INSTALL_DIR}/config/.env
+        echo "POSTGRES_DB=${POSTGRES_DB:-mavis}" >> ${INSTALL_DIR}/config/.env
+        echo "POSTGRES_USER=${POSTGRES_USER:-psql}" >> ${INSTALL_DIR}/config/.env
+		echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> ${INSTALL_DIR}/config/.env
+		echo "DATABASE_URL=${DATABASE_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}?sslmode=disable}" >> ${INSTALL_DIR}/config/.env
+		echo "DB_URL=${DB_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}}" >> ${INSTALL_DIR}/config/.env
+		echo "REDIS_HOST=${REDIS_HOST:-mavis-redis}"  >> ${INSTALL_DIR}/config/.env
+		echo "REDIS_PORT=${REDIS_PORT:-6379}" >> ${INSTALL_DIR}/config/.env
+		echo "REDIS_URL=${REDIS_URL:-redis://\${REDIS_HOST\}:\${REDIS_PORT\}/0}" >> ${INSTALL_DIR}/config/.env
+		echo "CELERY_BROKER_URL=${CELERY_BROKER_URL:-\${REDIS_URL\}}" >> ${INSTALL_DIR}/config/.env
+        echo "CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-\${REDIS_URL\}}" >> ${INSTALL_DIR}/config/.env
+		echo "SSH_PROXY_HOST=${SSH_PROXY_HOST:-\${DOMAIN\}}" >> ${INSTALL_DIR}/config/.env
+		echo "MAVIS_HOST=${MAVIS_HOST:-\${DOMAIN\}}" >> ${INSTALL_DIR}/config/.env
+
+
+		while read line ;do
+                	v=$(echo "${line}" | cut -d '=' -f 1)
+                	if /usr/bin/env |grep "${v}" > /dev/null 2>&1 && [ -n "${v}" ] && [ -z $(cat  ${INSTALL_DIR}/config/.env |grep "${v}=") ] ;then
+                        	/usr/bin/env |grep "${v}=" >> ${INSTALL_DIR}/config/.env
+                	fi
+        	done < ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
 
 	else
-		DOMAIN=$(cat ${INSTALL_DIR}/config/.env | grep "DOMAIN=" | cut -d '=' -f 2)
+		DOMAIN=$(cat ${INSTALL_DIR}/config/.env |grep "DOMAIN=" |cut -d '=' -f 2)
 	fi
+
+
+
+
 
 	cat >mavis.service <<EOF
 [Unit]
@@ -581,20 +601,20 @@ do_install() {
 	case "$lsb_dist.$dist_version" in
 	debian.stretch | debian.jessie)
 		deprecation_notice "$lsb_dist" "$dist_version"
-		exit 1
+                exit 1
 		;;
 	raspbian.stretch | raspbian.jessie)
 		deprecation_notice "$lsb_dist" "$dist_version"
-		exit 1
+                exit 1
 		;;
 	ubuntu.xenial | ubuntu.trusty)
 		deprecation_notice "$lsb_dist" "$dist_version"
-		exit 1
+                exit 1
 		;;
-	centos.6 | centos.8 | centos.9)
+	centos.6|centos.8|centos.9)
 		deprecation_notice "$lsb_dist" "$dist_version"
 		exit 1
-		;;
+	    ;;
 	fedora.*)
 		if [ "$dist_version" -lt 33 ]; then
 			deprecation_notice "$lsb_dist" "$dist_version"
@@ -870,19 +890,23 @@ check_user
 start_docker
 install_mavis
 
+
 result=$(keeper_cli status)
 i=0
-while [ x"$(echo ${result} | grep 'status normal')" = x"" ]; do
-	i=$((i + 1))
-	if [ $i -gt 10 ]; then
-		echo -e "${COLOR_RED}Check mavis status timeout${COLOR_REST}"
-		echo -e "${COLOR_RED}Please reinstall later or Run command to check conatiner status [ sudo docker ps ]${COLOR_REST}"
-		exit 1
-	fi
-	result=$(keeper_cli status)
-	echo "Wait for mavis warm up"
-	sleep 30
+while [ x"$(echo ${result} |grep 'status normal')" = x"" ];do
+     i=$((i+1))
+     if [ $i -gt 10  ];then
+       echo -e "${COLOR_RED}Check mavis status timeout${COLOR_REST}"
+       echo -e "${COLOR_RED}Please reinstall later or Run command to check conatiner status [ sudo docker ps ]${COLOR_REST}"
+       exit 1
+     fi
+     result=$(keeper_cli status)
+     echo "Wait for mavis warm up"
+     sleep 30
 done
+
+
+
 
 echo "           _____                    _____                    _____                    _____                    _____ "
 echo "          /\    \                  /\    \                  /\    \                  /\    \                  /\    \ "
