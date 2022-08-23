@@ -2,9 +2,10 @@
 set -e
 # Docker CE for Linux installation script
 # SCRIPT_COMMIT_SHA="b2e29ef7a9a89840d2333637f7d1900a83e7153f"
-TAG=preview-apiserver
-MAVIS_VERSION="1.0.0"
-MAVIS_REPO=cr-preview.pentium.network/mavisdev
+
+MAVIS_STATIC_PAGE=https://pnetwork.github.io/release.mavis
+MAVIS_VERSION=1.0.0
+#MAVIS_REPO=
 VERSION="20.10"
 CHANNEL="stable"
 DOWNLOAD_URL="https://download.docker.com"
@@ -12,7 +13,7 @@ REPO_FILE="docker-ce.repo"
 COLOR_REST='\e[0m'
 COLOR_GREEN='\e[0;32m'
 COLOR_RED='\e[0;31m'
-INSTALL_DIR="/opt/mavis"
+INSTALL_DIR=${INSTALL_DIR:-/opt/mavis}
 # Mavis Directory Structure
 DIR_LIST="
 backups
@@ -73,7 +74,6 @@ check_user() {
 
 }
 
-
 check_environment() {
 
 	## Check disk space (40GB)
@@ -103,7 +103,7 @@ check_environment() {
 	## Check memory
 	local avail_mem="$(free -g | grep Mem | awk '{print $2}')"
 	if [ "$avail_mem" -lt 15 ]; then
-		echo -e "${COLOR_RED}Memory size error. Minimum memory size${COLOR_REST}"
+		echo -e "${COLOR_RED}Memory size error. Minimum memory size 16GB${COLOR_REST}"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check memory ok${COLOR_REST}"
@@ -116,20 +116,22 @@ check_environment() {
 	5)
 		echo -e "${COLOR_RED}Can not connect to ${DOWNLOAD_URL}${COLOR_REST}"
 		echo -e "${COLOR_RED}Check network status failed${COLOR_REST}"
+		exit 1
 		;;
 	*)
 		echo -e "The network is down or very slow"
 		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
+		exit 1
 		;;
 	esac
 }
 
 keeper_cli() {
-	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} ${MAVIS_REPO}/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
-	if echo "${result}" |grep "Not Found Item";then
+	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} gcr.io/mavis-license-server-stage/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
+	if echo "${result}" | grep "Not Found Item"; then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
-	elif [ -z "$result" ];then
+	elif [ -z "$result" ]; then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
 	fi
@@ -138,332 +140,93 @@ keeper_cli() {
 
 install_mavis() {
 
-
-    ## Remove old container
-    local old_list="$(echo $($sh_c "docker ps" |grep ${MAVIS_REPO}|awk '{print $1}')  )"
-    echo ${old_list}
-    if [ x"$old_list" != x"" ];then
-            $sh_c "docker rm --force ${old_list} || true"
-    fi
-
+	## Remove old container
+	local old_list="$(echo $($sh_c "docker ps" | grep gcr.io/mavis-license-server-stage | awk '{print $1}'))"
+	echo ${old_list}
+	if [ x"$old_list" != x"" ]; then
+		$sh_c "docker rm --force ${old_list} || true"
+	fi
 
 	## check config dir if exist
 	if [ -d "${INSTALL_DIR}/config" ]; then
 		echo -e "${COLOR_GREEN}Path ${INSTALL_DIR}/config is already exist${COLOR_REST}"
-		export $(xargs <${INSTALL_DIR}/config/.env)
-		$sh_c "mv -b ${INSTALL_DIR}/config ${INSTALL_DIR}/backups/config-$(date +'%Y-%m-%d-%H-%M:')"
+		local first_install=false
+		$sh_c "/bin/cp -r  ${INSTALL_DIR}/config ${INSTALL_DIR}/backups/config-$(date +'%Y-%m-%d-%H-%M:')"
+		$sh_c "rm -rf ${INSTALL_DIR}/config/*"
 	fi
-
-	## Get MAVIS_URL
-	if [ -z "$MAVIS_URL" ]; then
-		local PUBLIC_IP=$(hostname -I | grep -v -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)' | awk '{print $1}')
-		MAVIS_URL="${PUBLIC_IP}"
-		if [ -z "$PUBLIC_IP" ]; then
-			MAVIS_URL="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')"
-		fi
-	else
-		MAVIS_URL=$(echo $MAVIS_URL|sed 's/https\?:\/\///g')
-	fi
-
-	## Get PostgreSQL
-	if [ -z "$POSTGRES_PASSWORD" ]; then
-		POSTGRES_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 13)
-	fi
-	## Get KEYS
-
-	MASTER_KEYS=${MASTER_KEYS:-$(keeper_cli generate-key MASTER_KEYS)}
-	SECRET_KEY=${SECRET_KEY:-$(keeper_cli generate-key SECRET_KEY)}
-	GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID:-$(keeper_cli generate-key GATEWAY_CLIENT_ID)}
-	GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET:-$(keeper_cli generate-key GATEWAY_CLIENT_SECRET)}
-
 
 	# Generate Directory Structure
 	for i in ${DIR_LIST}; do
 		$sh_c "mkdir -p ${INSTALL_DIR}/$i"
 	done
-	$sh_c "touch ${INSTALL_DIR}/config/current_version ${INSTALL_DIR}/config/old_version"
+	$sh_c "touch ${INSTALL_DIR}/config/current_version ${INSTALL_DIR}/config/old_version ${INSTALL_DIR}/config/${MAVIS_VERSION}"
 	$sh_c "echo ${MAVIS_VERSION} > ${INSTALL_DIR}/config/current_version"
 	$sh_c "chown -R ${user}:${user} ${INSTALL_DIR}"
-	cat >${INSTALL_DIR}/config/${MAVIS_VERSION}/docker-compose.yml <<EOF
-version: "3.3"
 
-x-logging:
-  &dev-logging
-  driver: journald
+	curl ${MAVIS_STATIC_PAGE}/version/${MAVIS_VERSION}/.env -o ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
+	curl ${MAVIS_STATIC_PAGE}/version/${MAVIS_VERSION}/docker-compose.yml -o ${INSTALL_DIR}/config/${MAVIS_VERSION}/docker-compose.yml
+	chmod 444 ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
 
-services:
-  traefik:
-    image: "cr.pentium.network/mavis/traefik:v2.6.1"
-    container_name: "traefik"
-    logging: *dev-logging
-    command:
-      - "--log.level=DEBUG"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.file.filename=/configuration/certificates.yaml"
-      - "--entrypoints.websecure.address=:443"
-    ports:
-      - "8080:8080"
-      - "443:443"
-    networks:
-      - mavis
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-#      - "./configuration/:/configuration/"
+	if [ x"${first_install}" != x"false" ]; then
 
+		## Get MAVIS_URL
+		if [ -z "$MAVIS_URL" ]; then
+			local PUBLIC_IP=$(hostname -I | grep -v -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)' | awk '{print $1}')
+			MAVIS_URL="${PUBLIC_IP}"
+			echo
+			if [ -z "$PUBLIC_IP" ]; then
+				DOMAIN="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')"
+				echo DOMAIN="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')" >>${INSTALL_DIR}/config/.env
+			else
+				DOMAIN="${PUBLIC_IP}"
+				echo DOMAIN="${PUBLIC_IP}" >>${INSTALL_DIR}/config/.env
+			fi
+		else
+			DOMAIN=$(echo $MAVIS_URL | sed 's/https\?:\/\///g')
+			echo DOMAIN=$(echo $MAVIS_URL | sed 's/https\?:\/\///g') >>${INSTALL_DIR}/config/.env
+		fi
 
-  mavis-apiserver:
-    image: ${MAVIS_REPO}/apiserver:${TAG}
-    container_name: mavis-apiserver
-    depends_on:
-      - mavis-postgres
-    env_file:
-      - ../.env
-    ports:
-      - "8000"
-    networks:
-      - mavis
-    command: "uvicorn mavis.apiserver.main:app --host 0.0.0.0 --port 8000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mavis-apiserver.service=mavis-apiserver@docker"
-      - "traefik.http.services.mavis-apiserver.loadbalancer.server.port=8000"
-      - "traefik.http.routers.mavis-apiserver.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`) && (PathPrefix(\`/api\`) || PathPrefix(\`/admin\`) || PathPrefix(\`/apistatic\`) || PathPrefix(\`/docs\`) || PathPrefix(\`/openapi.json\`) || PathPrefix(\`/auth\`) || PathPrefix(\`/redoc\`))"
-      - "traefik.http.routers.mavis-apiserver.entrypoints=websecure"
-      - "traefik.http.routers.mavis-apiserver.priority=2"
-      - "traefik.http.routers.mavis-apiserver.tls=true"
+		## Generate POSTGRES_PASSWORD
+		if [ -z "$POSTGRES_PASSWORD" ]; then
+			POSTGRES_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 13)
+		fi
 
-  mavis-f2e:
-    image: ${MAVIS_REPO}/f2e:${TAG}
-    container_name: mavis-f2e
-    depends_on:
-      - mavis-apiserver
-    env_file:
-      - ../.env
-    networks:
-      - mavis
-    expose:
-      - "3000"
-    volumes:
-      - ../../data/ssh-proxy:/usr/share/nginx/html/assets/videos/sshrec:z
-      - ../../data/rdp-proxy:/usr/share/nginx/html/assets/videos/rdprec:z
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.mavis-f2e.loadbalancer.server.port=3000"
-      - "traefik.http.routers.mavis-f2e.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`)"
-      - "traefik.http.routers.mavis-f2e.entrypoints=websecure"
-      - "traefik.http.routers.mavis-f2e.service=mavis-f2e@docker"
-      - "traefik.http.routers.mavis-f2e.priority=1"
-      - "traefik.http.routers.mavis-f2e.tls=true"
+		echo "MAVIS_URL"=https://\${DOMAIN} >>${INSTALL_DIR}/config/.env
+		echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >>${INSTALL_DIR}/config/.env
+		echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >>${INSTALL_DIR}/config/.env
+		echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/rdp-proxy}" >>${INSTALL_DIR}/config/.env
+		echo "\n\n\n### It is not recommended to modify, if you must modify please make sure you know what you are doing ###" >>${INSTALL_DIR}/config/.env
+		echo "INSTALL_DIR=${INSTALL_DIR:-/opt/mavis}" >>${INSTALL_DIR}/config/.env
+		echo "MASTER_KEYS=${MASTER_KEYS:-$(keeper_cli generate-key MASTER_KEYS)}" >>${INSTALL_DIR}/config/.env
+		echo "SECRET_KEY=${SECRET_KEY:-$(keeper_cli generate-key SECRET_KEY)}" >>${INSTALL_DIR}/config/.env
+		echo "GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID:-$(keeper_cli generate-key GATEWAY_CLIENT_ID)}" >>${INSTALL_DIR}/config/.env
+		echo "GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET:-$(keeper_cli generate-key GATEWAY_CLIENT_SECRET)}" >>${INSTALL_DIR}/config/.env
+		echo "POSTGRES_HOST=${POSTGRES_HOST:-mavis-postgres}" >>${INSTALL_DIR}/config/.env
+		echo "POSTGRES_PORT=${POSTGRES_PORT:-5432}" >>${INSTALL_DIR}/config/.env
+		echo "POSTGRES_DB=${POSTGRES_DB:-mavis}" >>${INSTALL_DIR}/config/.env
+		echo "POSTGRES_USER=${POSTGRES_USER:-psql}" >>${INSTALL_DIR}/config/.env
+		echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >>${INSTALL_DIR}/config/.env
+		echo "DATABASE_URL=${DATABASE_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}?sslmode=disable}" >>${INSTALL_DIR}/config/.env
+		echo "DB_URL=${DB_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}}" >>${INSTALL_DIR}/config/.env
+		echo "REDIS_HOST=${REDIS_HOST:-mavis-redis}" >>${INSTALL_DIR}/config/.env
+		echo "REDIS_PORT=${REDIS_PORT:-6379}" >>${INSTALL_DIR}/config/.env
+		echo "REDIS_URL=${REDIS_URL:-redis://\${REDIS_HOST\}:\${REDIS_PORT\}/0}" >>${INSTALL_DIR}/config/.env
+		echo "CELERY_BROKER_URL=${CELERY_BROKER_URL:-\${REDIS_URL\}}" >>${INSTALL_DIR}/config/.env
+		echo "CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-\${REDIS_URL\}}" >>${INSTALL_DIR}/config/.env
+		echo "SSH_PROXY_HOST=${SSH_PROXY_HOST:-\${DOMAIN\}}" >>${INSTALL_DIR}/config/.env
+		echo "MAVIS_HOST=${MAVIS_HOST:-\${DOMAIN\}}" >>${INSTALL_DIR}/config/.env
 
-  mavis-postgres:
-    image: cr-preview.pentium.network/mavis/postgres:12.3
-    container_name: mavis-postgres
-    volumes:
-      - ../../data/maindb:/var/lib/postgresql/data:Z
-      - ../../backups/db:/backups:z
-    env_file:
-      - ../.env
-    networks:
-      - mavis
-    logging: *dev-logging
+		while read line; do
+			v=$(echo "${line}" | cut -d '=' -f 1)
+			if /usr/bin/env | grep "${v}" >/dev/null 2>&1 && [ -n "${v}" ] && [ -z $(cat ${INSTALL_DIR}/config/.env | grep "${v}=") ]; then
+				/usr/bin/env | grep "${v}=" >>${INSTALL_DIR}/config/.env
+			fi
+		done <${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
 
-  mavis-sshserver:
-    image: ${MAVIS_REPO}/sshserver:${TAG}
-    container_name: mavis-sshserver
-    depends_on:
-      - mavis-postgres
-      - mavis-apiserver
-    env_file:
-      - ../.env
-    networks:
-      - mavis
-    expose:
-      - "4002"
-    volumes:
-      - ../../data/ssh-proxy:/tmp/sshrec:z
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mavis-sshserver.service=mavis-sshserver@docker"
-      - "traefik.http.services.mavis-sshserver.loadbalancer.server.port=4002"
-      - "traefik.http.routers.mavis-sshserver.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`) && PathPrefix(\`/ssh\`)"
-      - "traefik.http.routers.mavis-sshserver.entrypoints=websecure"
-      - "traefik.http.routers.mavis-sshserver.priority=3"
-      - "traefik.http.routers.mavis-sshserver.tls=true"
+	else
+		DOMAIN=$(cat ${INSTALL_DIR}/config/.env | grep "DOMAIN=" | cut -d '=' -f 2)
+	fi
 
-  mavis-rdpguacd:
-    image: ${MAVIS_REPO}/rdpguacd:${TAG}
-    container_name: mavis-rdpguacd
-    env_file:
-      - ../.env
-    networks:
-      - mavis
-    expose:
-      - "4822"
-    volumes:
-      - ../../data/rdp-proxy:/tmp/rdprec:z
-    logging: *dev-logging
-
-  mavis-rdpwsserver:
-    image: ${MAVIS_REPO}/rdpwsserver:${TAG}
-    container_name: mavis-rdpwsserver
-    depends_on:
-      - mavis-postgres
-      - mavis-apiserver
-      - mavis-rdpguacd
-    env_file:
-      - ../.env
-    networks:
-      - mavis
-    expose:
-      - "4003"
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mavis-rdpwsserver.service=mavis-rdpwsserver@docker"
-      - "traefik.http.services.mavis-rdpwsserver.loadbalancer.server.port=4003"
-      - "traefik.http.routers.mavis-rdpwsserver.rule=Host(\`\${MAVIS_URL_WITHOUT_PROTOCOL}\`) && PathPrefix(\`/rdp\`)"
-      - "traefik.http.routers.mavis-rdpwsserver.entrypoints=websecure"
-      - "traefik.http.routers.mavis-rdpwsserver.priority=2"
-      - "traefik.http.routers.mavis-rdpwsserver.tls=true"
-
-  mavis-rdpguacenc:
-    image: ${MAVIS_REPO}/rdpguacenc:${TAG}
-    container_name: mavis-rdpguacenc
-    depends_on:
-      - mavis-rdpguacd
-    env_file:
-      - ../.env
-    networks:
-      - mavis
-    volumes:
-      - ../../data/rdp-proxy:/tmp/rdprec:z
-    logging: *dev-logging
-
-  mavis-pgweb:
-    container_name: mavis-pgweb
-    restart: always
-    image: cr-preview.pentium.network/mavis/sosedoff/pgweb
-    links:
-      - mavis-postgres:postgres
-    env_file:
-      - ../.env
-    depends_on:
-      - mavis-postgres
-    networks:
-      - mavis
-    expose:
-      - "8081"
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.mavis-pgweb.loadbalancer.server.port=8081"
-      - "traefik.http.routers.mavis-pgweb.rule=Host(\`pgweb.\${MAVIS_URL_WITHOUT_PROTOCOL}\`)"
-      - "traefik.http.routers.mavis-pgweb.entrypoints=websecure"
-      - "traefik.http.routers.mavis-pgweb.service=mavis-pgweb@docker"
-      - "traefik.http.routers.mavis-pgweb.tls=true"
-
-  mavis-redis:
-    image: cr-preview.pentium.network/mavis/redis:5.0
-    container_name: mavis-redis
-    networks:
-      - mavis
-    logging: *dev-logging
-
-  mavis-task-runner:
-    image: ${MAVIS_REPO}/apiserver:${TAG}
-    container_name: mavis-task-runner
-    volumes:
-      - ../../logs/scripts:/app/logs/scripts:Z
-      - ../../logs:/app/logs
-    depends_on:
-      - mavis-redis
-      - mavis-postgres
-    env_file:
-      - ../.env
-    ports: []
-    command: "celery -A mavis.apiserver.main.celery_app worker --loglevel=info"
-    networks:
-      - mavis
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=false"
-
-  mavis-beat:
-    image: ${MAVIS_REPO}/apiserver:${TAG}
-    container_name: mavis-beat
-    depends_on:
-      - mavis-redis
-      - mavis-postgres
-    env_file:
-      - ../.env
-    ports: []
-    command: "celery --app=mavis.apiserver.main.celery_app beat -l info"
-    networks:
-      - mavis
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=false"
-
-  mavis-flower:
-    image: ${MAVIS_REPO}/apiserver:${TAG}
-    container_name: mavis-flower
-    depends_on:
-      - mavis-postgres
-    env_file:
-      - ../.env
-    expose:
-      - "5555"
-    command: ["celery", "flower", "--app=mavis.apiserver.main.celery_app", "--broker=${CELERY_BROKER_URL}",
-     "--basic_auth=${CELERY_FLOWER_USER}:${CELERY_FLOWER_PASSWORD}"]
-    networks:
-      - mavis
-    logging: *dev-logging
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.mavis-flower.loadbalancer.server.port=5555"
-      - "traefik.http.routers.mavis-flower.rule=Host(\`flower.\${MAVIS_URL_WITHOUT_PROTOCOL}\`)"
-      - "traefik.http.routers.mavis-flower.entrypoints=websecure"
-      - "traefik.http.routers.mavis-flower.middlewares=inner-ip@file,admin-auth@docker"
-      - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
-      - "traefik.http.routers.mavis-flower.tls.certresolver=letsencrypt"
-
-networks:
-  mavis:
-    name: mavis
-EOF
-	cat >${INSTALL_DIR}/config/.env <<EOF
-MASTER_KEYS=${MASTER_KEYS}
-MAVIS_URL=${MAVIS_URL:-https://${MAVIS_URL}}
-MAVIS_URL_WITHOUT_PROTOCOL=${MAVIS_URL}
-SECRET_KEY=${SECRET_KEY}
-MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-${INSTALL_DIR}/data/media}
-SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-${INSTALL_DIR}/data/ssh-proxy}
-SSH_RECORDING_SIZE=${SSH_RECORDING_SIZE:-50MB}
-RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-${INSTALL_DIR}/data/ssh-proxy}
-GUACD_HOST=${GUACD_HOST:-mavis-rdpguacd}
-GUACD_PORT=${GUACD_PORT:-4822}
-REDIS_HOST=${REDIS_HOST:-mavis-redis}
-REDIS_PORT=${REDIS_PORT:-6379}
-REDIS_URL=redis://${REDIS_HOST:-mavis-redis}:${REDIS_PORT:-6379}/0
-POSTGRES_HOST=${POSTGRES_HOST:-mavis-postgres}
-POSTGRES_PORT=${POSTGRES_PORT:-5432}
-POSTGRES_DB=${POSTGRES_DB:-mavis}
-POSTGRES_USER=${POSTGRES_USER:-psql}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-DATABASE_URL=postgresql://${POSTGRES_USER:-psql}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-mavis-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-mavis}?sslmode=disable
-DB_URL=postgresql://${POSTGRES_USER:-psql}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-mavis-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-mavis}
-SMTP_HOST=${SMTP_HOST}
-SMTP_PORT=${SMTP_PORT:-465}
-SMTP_IS_SSL=${SMTP_IS_SSL:-true}
-SMTP_SENDER_ACCOUNT=${SMTP_SENDER_ACCOUNT}
-SMTP_SENDER_PASSWORD=${SMTP_SENDER_PASSWORD}
-GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID}
-GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET}
-LICENSE_URL=http://staging.mavis-license.work
-EOF
 	cat >mavis.service <<EOF
 [Unit]
 Description=Service for mavis
@@ -474,9 +237,9 @@ After=docker.service
 Environment=COMPOSE_HTTP_TIMEOUT=600
 ExecStartPre=/bin/sh -c "/usr/bin/docker network create --driver bridge mavis || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker rm keeper --force || /bin/true"
-ExecStartPre=/bin/sh -c "/usr/bin/docker pull ${MAVIS_REPO}/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
-ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e INSTALL_DIR=${INSTALL_DIR} ${MAVIS_REPO}/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
-ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e INSTALL_DIR=${INSTALL_DIR} ${MAVIS_REPO}/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
+ExecStartPre=/bin/sh -c "/usr/bin/docker pull gcr.io/mavis-license-server-stage/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR}  -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} gcr.io/mavis-license-server-stage/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
+ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} gcr.io/mavis-license-server-stage/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
 StandardOutput=syslog
 Restart=always
 Type=simple
@@ -521,9 +284,6 @@ remove_docker() {
 		fi
 		;;
 	zypper)
-		$sh_c 'systemctl stop docker.service' || true
-		$sh_c 'systemctl stop docker.socket' || true
-		$sh_c 'systemctl stop mavis' || true
 		$sh_c 'zypper remove docker-ce docker-ce-cli containerd.io docker-compose-plugin -y'
 		if command_exists docker; then
 			echo "${COLOR_RED}If you already have Docker installed, please remove it${COLOR_REST}"
@@ -821,20 +581,20 @@ do_install() {
 	case "$lsb_dist.$dist_version" in
 	debian.stretch | debian.jessie)
 		deprecation_notice "$lsb_dist" "$dist_version"
-                exit 1
+		exit 1
 		;;
 	raspbian.stretch | raspbian.jessie)
 		deprecation_notice "$lsb_dist" "$dist_version"
-                exit 1
+		exit 1
 		;;
 	ubuntu.xenial | ubuntu.trusty)
 		deprecation_notice "$lsb_dist" "$dist_version"
-                exit 1
+		exit 1
 		;;
-	centos.6|centos.8|centos.9)
+	centos.6 | centos.8 | centos.9)
 		deprecation_notice "$lsb_dist" "$dist_version"
 		exit 1
-	    ;;
+		;;
 	fedora.*)
 		if [ "$dist_version" -lt 33 ]; then
 			deprecation_notice "$lsb_dist" "$dist_version"
@@ -902,7 +662,6 @@ do_install() {
 			if ! is_dry_run; then
 				set -x
 			fi
-			pkgs="$pkgs docker-compose"
 			$sh_c "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $pkgs >/dev/null"
 			if version_gte "20.10"; then
 				# Install docker-ce-rootless-extras without "--no-install-recommends", so as to install slirp4netns when available
@@ -992,7 +751,6 @@ do_install() {
 			if ! is_dry_run; then
 				set -x
 			fi
-			pkgs="$pkgs docker-compose"
 			$sh_c "$pkg_manager install -y -q $pkgs"
 		)
 		echo_docker_as_nonroot
@@ -1077,7 +835,6 @@ do_install() {
 			if ! is_dry_run; then
 				set -x
 			fi
-			pkgs="$pkgs docker-compose"
 			$sh_c "zypper -q install -y $pkgs"
 		)
 		echo_docker_as_nonroot
@@ -1109,27 +866,23 @@ if command_exists docker && [ x"$DRY_RUN" != x"1" ]; then
 	remove_docker
 fi
 do_install
-start_docker
 check_user
+start_docker
 install_mavis
-
 
 result=$(keeper_cli status)
 i=0
-while [ x"$(echo ${result} |grep 'status normal')" = x"" ];do
-     i=$((i+1))
-     if [ $i -gt 10  ];then
-       echo -e "${COLOR_RED}Check mavis status timeout${COLOR_REST}"
-       echo -e "${COLOR_RED}Please reinstall later or Run command to check conatiner status [ sudo docker ps ]${COLOR_REST}"
-       exit 1
-     fi
-     result=$(keeper_cli status)
-     echo "Wait for mavis warm up"
-     sleep 30
+while [ x"$(echo ${result} | grep 'status normal')" = x"" ]; do
+	i=$((i + 1))
+	if [ $i -gt 10 ]; then
+		echo -e "${COLOR_RED}Check mavis status timeout${COLOR_REST}"
+		echo -e "${COLOR_RED}Please reinstall later or Run command to check conatiner status [ sudo docker ps ]${COLOR_REST}"
+		exit 1
+	fi
+	result=$(keeper_cli status)
+	echo "Wait for mavis warm up"
+	sleep 30
 done
-
-
-
 
 echo "           _____                    _____                    _____                    _____                    _____ "
 echo "          /\    \                  /\    \                  /\    \                  /\    \                  /\    \ "
@@ -1153,5 +906,5 @@ echo "         /:::/    /               /:::/    /                              
 echo "         \::/    /                \::/    /                                         \::/    /                \::/    / "
 echo "          \/____/                  \/____/                                           \/____/                  \/____/ "
 echo -e "---------   ${COLOR_GREEN}Install mavis keeper success , please check it${COLOR_REST}"
-echo -e "---------   ${COLOR_GREEN}Your MAVIS_URL is [https://${MAVIS_URL}]${COLOR_REST}"
+echo -e "---------   ${COLOR_GREEN}Your MAVIS_URL is [https://${DOMAIN}]${COLOR_REST}"
 echo -e "---------   ${COLOR_GREEN}Your default account and password is [admin/admin]${COLOR_REST}"
