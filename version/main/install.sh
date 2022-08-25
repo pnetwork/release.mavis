@@ -873,6 +873,8 @@ install_mavis
 result=$(keeper_cli status)
 i=0
 while [ x"$(echo ${result} | grep 'status normal')" = x"" ]; do
+        echo "Wait for mavis warm up"
+        sleep 30
 	i=$((i + 1))
 	if [ $i -gt 10 ]; then
 		echo -e "${COLOR_RED}Check mavis status timeout${COLOR_REST}"
@@ -880,8 +882,6 @@ while [ x"$(echo ${result} | grep 'status normal')" = x"" ]; do
 		exit 1
 	fi
 	result=$(keeper_cli status)
-	echo "Wait for mavis warm up"
-	sleep 30
 done
 
 echo "           _____                    _____                    _____                    _____                    _____ "
