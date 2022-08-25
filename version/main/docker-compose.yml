@@ -14,7 +14,7 @@ services:
       - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--providers.file.filename=/configuration/certificates.yaml"
+      - "--providers.file.filename=/tls/certificates.yaml"
       - "--entrypoints.websecure.address=:443"
     ports:
       - "8080:8080"
@@ -23,7 +23,7 @@ services:
       - mavis
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-#      - "./configuration/:/configuration/"
+      - "../tls/:/tls/"
 
 
   mavis-apiserver:
