@@ -248,12 +248,12 @@ EOF
 
 	### Certificate
 
-	if [ -f "./tls.crt" ] && [ -f "./tls.key" ];then
-		$sh_c mkdir ${INSTALL_DIR}/config/tls && \
-		$sh_c mv ./tls.crt ${INSTALL_DIR}/config/tls && \
-		$sh_c mv ./tls.key ${INSTALL_DIR}/config/tls
+        if [ -f "./tls.crt" ] && [ -f "./tls.key" ];then
+                $sh_c "mkdir -p ${INSTALL_DIR}/config/tls && \
+                mv tls.crt ${INSTALL_DIR}/config/tls/ && \
+                mv tls.key ${INSTALL_DIR}/config/tls/"
 
-		cat >certificates.yaml <<EOF
+                cat >${INSTALL_DIR}/config/tls/certificates.yaml <<EOF
 tls:
   stores:
     default:
@@ -267,7 +267,7 @@ tls:
       stores:
         - default
 EOF
-
+	fi
     
 
 
