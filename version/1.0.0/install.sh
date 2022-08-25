@@ -245,6 +245,37 @@ Restart=always
 Type=simple
 SuccessExitStatus=137
 EOF
+
+	### Certificate
+
+	if [ -f "./tls.crt" ] && [ -f "./tls.key" ];then
+		$sh_c mkdir ${INSTALL_DIR}/config/tls && \
+		$sh_c mv ./tls.crt ${INSTALL_DIR}/config/tls && \
+		$sh_c mv ./tls.key ${INSTALL_DIR}/config/tls
+
+		cat >certificates.yaml <<EOF
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /tls/tls.crt
+        keyFile: /tls/tls.key
+  certificates:
+    # first certificate
+    - certFile: /tls/tls.crt
+      keyFile: /tls/tls.key
+      stores:
+        - default
+EOF
+
+    
+
+
+
+
+
+
+
 	$sh_c 'mv mavis.service /etc/systemd/system/mavis.service'
 	# start mavis
 	$sh_c 'systemctl daemon-reload'
