@@ -162,6 +162,8 @@ install_mavis() {
 	$sh_c "touch ${INSTALL_DIR}/config/current_version ${INSTALL_DIR}/config/old_version ${INSTALL_DIR}/config/${MAVIS_VERSION}"
 	$sh_c "echo ${MAVIS_VERSION} > ${INSTALL_DIR}/config/current_version"
 	$sh_c "chown -R ${user}:${user} ${INSTALL_DIR}"
+        $sh_c "chown -R 1000:1000 ${INSTALL_DIR}/data/ssh-proxy"
+        $sh_c "chown -R 1000:1000 ${INSTALL_DIR}/data/rdp-proxy"
 
 	curl ${MAVIS_STATIC_PAGE}/version/${MAVIS_VERSION}/.env -o ${INSTALL_DIR}/config/${MAVIS_VERSION}/.env
 	curl ${MAVIS_STATIC_PAGE}/version/${MAVIS_VERSION}/docker-compose.yml -o ${INSTALL_DIR}/config/${MAVIS_VERSION}/docker-compose.yml
