@@ -36,8 +36,8 @@ services:
       - .env
       - ../.env
     volumes:
-      - ./data/ssh-proxy:/opt/ssh-proxy:Z
-      - ./data/media:/opt/media:Z
+      - ../../data/ssh-proxy:/opt/ssh-proxy:z
+      - ../../data/media:/opt/media:z
     ports:
       - "8000"
     networks:
@@ -66,8 +66,8 @@ services:
     expose:
       - "3000"
     volumes:
-      - ../../data/ssh-proxy:/usr/share/nginx/html/assets/videos/sshrec:Z
-      - ../../data/rdp-proxy:/usr/share/nginx/html/assets/videos/rdprec:Z
+      - ../../data/ssh-proxy:/usr/share/nginx/html/assets/videos/sshrec:z
+      - ../../data/rdp-proxy:/usr/share/nginx/html/assets/videos/rdprec:z
     logging: *dev-logging
     labels:
       - "traefik.enable=true"
@@ -83,7 +83,7 @@ services:
     image: gcr.io/pentium-mavis/postgres:12.3
     container_name: mavis-postgres
     volumes:
-      - ../../data/maindb:/var/lib/postgresql/data:Z
+      - ../../data/maindb:/var/lib/postgresql/data:z
       - ../../backups/db:/backups:z
     env_file:
       - .env
@@ -106,7 +106,7 @@ services:
     expose:
       - "4002"
     volumes:
-      - ./data/ssh-proxy:/opt/mavis/data/ssh-proxy:Z
+      - ../../data/ssh-proxy:/opt/ssh-proxy:z
     logging: *dev-logging
     labels:
       - "traefik.enable=true"
@@ -125,7 +125,6 @@ services:
     depends_on:
       - mavis-postgres
       - mavis-apiserver
-      - mavis-rdpguacd
     env_file:
       - ./.env
       - ../.env
@@ -135,7 +134,7 @@ services:
       - "4003"
     logging: *dev-logging
     volumes:
-      - ./data/rdp-proxy:/opt/rdp-proxy:Z
+      - ../../data/rdp-proxy:/opt/rdp-proxy:z
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mavis-rdp-proxy.service=mavis-rdp-proxy@docker"
@@ -185,7 +184,7 @@ services:
     image: gcr.io/pentium-mavis/apiserver:1.0.beta1-481
     container_name: mavis-task-runner
     volumes:
-      - ../../logs/scripts:/app/logs/scripts:Z
+      - ../../logs/scripts:/app/logs/scripts:z
       - ../../logs:/app/logs
     depends_on:
       - mavis-redis
