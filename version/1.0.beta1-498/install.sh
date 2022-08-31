@@ -216,6 +216,7 @@ install_mavis() {
 		echo "CELERY_BROKER_URL=${CELERY_BROKER_URL:-\${REDIS_URL\}}" >>${INSTALL_DIR}/config/.env
 		echo "CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-\${REDIS_URL\}}" >>${INSTALL_DIR}/config/.env
 		echo "SSH_PROXY_HOST=${SSH_PROXY_HOST:-\${DOMAIN\}}" >>${INSTALL_DIR}/config/.env
+		echo "RDP_PROXY_HOST=${RDP_PROXY_HOST:-\${DOMAIN\}}" >>${INSTALL_DIR}/config/.env
 
 		while read line; do
 			v=$(echo "${line}" | cut -d '=' -f 1)
