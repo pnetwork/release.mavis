@@ -252,8 +252,8 @@ EOF
 
         if [ -f "./tls.crt" ] && [ -f "./tls.key" ];then
                 $sh_c "mkdir -p ${INSTALL_DIR}/config/tls && \
-                mv tls.crt ${INSTALL_DIR}/config/tls/ && \
-                mv tls.key ${INSTALL_DIR}/config/tls/"
+                cp tls.crt ${INSTALL_DIR}/config/tls/ && \
+                cp tls.key ${INSTALL_DIR}/config/tls/"
 
                 cat >${INSTALL_DIR}/config/tls/certificates.yaml <<EOF
 tls:

@@ -124,7 +124,7 @@ services:
     container_name: mavis-rdpguacd
     env_file:
       - ./.env
-       - ../.env
+      - ../.env
     networks:
       - mavis
     expose:
