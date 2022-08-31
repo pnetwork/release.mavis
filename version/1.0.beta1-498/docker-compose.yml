@@ -36,9 +36,10 @@ services:
       - .env
       - ../.env
     volumes:
+      - ../../data/rdp-proxy:/opt/rdp-proxy:z
       - ../../data/ssh-proxy:/opt/ssh-proxy:z
       - ../../data/media:/opt/media:z
-    ports:
+    expose:
       - "8000"
     networks:
       - mavis
@@ -66,8 +67,7 @@ services:
     expose:
       - "3000"
     volumes:
-      - ../../data/ssh-proxy:/usr/share/nginx/html/assets/videos/sshrec:z
-      - ../../data/rdp-proxy:/usr/share/nginx/html/assets/videos/rdprec:z
+      - ../../data/media:/usr/share/nginx/html/assets/videos:Z
     logging: *dev-logging
     labels:
       - "traefik.enable=true"
@@ -116,6 +116,21 @@ services:
       - "traefik.http.routers.mavis-ssh-proxy.entrypoints=websecure"
       - "traefik.http.routers.mavis-ssh-proxy.priority=3"
       - "traefik.http.routers.mavis-ssh-proxy.tls=true"
+
+
+  mavis-rdpguacd:
+    restart: always
+    image: gcr.io/pentium-mavis/rdpguacd:1.0.beta1-498
+    container_name: mavis-rdpguacd
+    env_file:
+      - ./.env
+       - ../.env
+    networks:
+      - mavis
+    expose:
+      - "4822"
+
+
 
 
   mavis-rdp-proxy:
