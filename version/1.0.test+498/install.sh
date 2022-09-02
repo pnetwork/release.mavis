@@ -5,6 +5,7 @@ set -e
 
 MAVIS_STATIC_PAGE=https://pnetwork.github.io/release.mavis
 MAVIS_VERSION=1.0.test+498
+TAG=1.0.test-498
 #MAVIS_REPO=
 VERSION="20.10"
 CHANNEL="stable"
@@ -127,7 +128,7 @@ check_environment() {
 }
 
 keeper_cli() {
-	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} gcr.io/pentium-mavis/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
+	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} -e INSTALL_DIR=${INSTALL_DIR} gcr.io/pentium-mavis/keeper:${TAG} ${1} ${2} ${3} ")
 	if echo "${result}" | grep "Not Found Item"; then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
