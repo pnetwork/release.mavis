@@ -80,11 +80,11 @@ services:
       - "traefik.http.routers.mavis-storage.middlewares=mavis-storage-media"
       - "traefik.http.middlewares.mavis-storage-media.addprefix.prefix=/media"
       - "traefik.http.services.mavis-storage-minio.loadbalancer.server.port=9001"
-      - "traefik.http.routers.mavis-storage-minio.rule=Host(`minio.${DOMAIN}`)"
+      - "traefik.http.routers.mavis-storage-minio.rule=Host(`minio-${DOMAIN}`)"
       - "traefik.http.routers.mavis-storage-minio.entrypoints=websecure"
       - "traefik.http.routers.mavis-storage-minio.service=mavis-storage-minio@docker"
       - "traefik.http.routers.mavis-storage-minio.tls=true"
-
+      - "traefik.http.routers.mavis-storage-minio.priority=2"
 
 
   mavis-f2e:
@@ -218,6 +218,8 @@ services:
       - "traefik.http.routers.mavis-pgweb.entrypoints=websecure"
       - "traefik.http.routers.mavis-pgweb.service=mavis-pgweb@docker"
       - "traefik.http.routers.mavis-pgweb.tls=true"
+      - "traefik.http.routers.mavis-pgweb.priority=2"
+
 
   mavis-redis:
     restart: always
@@ -287,6 +289,9 @@ services:
       - "traefik.http.routers.mavis-flower.rule=Host(`flower-${DOMAIN}`)"
       - "traefik.http.routers.mavis-flower.entrypoints=websecure"
       - "traefik.http.routers.mavis-flower.tls=true"
+      - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
+      - "traefik.http.routers.mavis-flower.priority=2"
+
 
 networks:
   mavis:

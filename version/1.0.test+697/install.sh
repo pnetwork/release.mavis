@@ -194,9 +194,12 @@ install_mavis() {
 		if [ -z "$POSTGRES_PASSWORD" ]; then
 			POSTGRES_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 13)
 		fi
+                if [ -z "$STORAGE_SECRET" ]; then
+                        STORAGE_SECRET=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 13)
+                fi
 
 		echo "MAVIS_URL=https://\${DOMAIN}" >>${INSTALL_DIR}/config/.env
-        echo "FULL_DOMAIN=\${DOMAIN}" >>${INSTALL_DIR}/config/.env
+                echo "FULL_DOMAIN=\${DOMAIN}" >>${INSTALL_DIR}/config/.env
 		echo "MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-\${INSTALL_DIR\}/data/media}" >>${INSTALL_DIR}/config/.env
 		echo "SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-\${INSTALL_DIR\}/data/ssh-proxy}" >>${INSTALL_DIR}/config/.env
 		echo "RDP_RECORDING_PATH=${RDP_RECORDING_PATH:-\${INSTALL_DIR\}/data/rdp-proxy}" >>${INSTALL_DIR}/config/.env
@@ -211,6 +214,8 @@ install_mavis() {
 		echo "POSTGRES_DB=${POSTGRES_DB:-mavis}" >>${INSTALL_DIR}/config/.env
 		echo "POSTGRES_USER=${POSTGRES_USER:-psql}" >>${INSTALL_DIR}/config/.env
 		echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >>${INSTALL_DIR}/config/.env
+                echo "STORAGE_SECRET=${STORAGE_SECRET}" >> ${INSTALL_DIR}/config/.env
+                echo "STORAGE_KEY_ID=${STORAGE_KEY_ID:-minio}"  >> ${INSTALL_DIR}/config/.env
 		echo "DATABASE_URL=${DATABASE_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}?sslmode=disable}" >>${INSTALL_DIR}/config/.env
 		echo "DB_URL=${DB_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}}" >>${INSTALL_DIR}/config/.env
 		echo "REDIS_HOST=${REDIS_HOST:-mavis-redis}" >>${INSTALL_DIR}/config/.env
