@@ -43,7 +43,7 @@ services:
       - "8000"
     networks:
       - mavis
-    command: bash -c "python -m mavis.cli db upgrade && uvicorn mavis.apiserver.main:app --host 0.0.0.0 --port 8000"
+    command: bash -c "python -m mavis.cli storage init && python -m mavis.cli db upgrade && uvicorn mavis.apiserver.main:app --host 0.0.0.0 --port 8000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mavis-apiserver.service=mavis-apiserver@docker"
@@ -80,12 +80,12 @@ services:
       - "traefik.http.routers.mavis-storage.middlewares=mavis-storage-media"
       - "traefik.http.middlewares.mavis-storage-media.addprefix.prefix=/media"
       - "traefik.http.services.mavis-storage-minio.loadbalancer.server.port=9001"
-      - "traefik.http.routers.mavis-storage-minio.rule=PathPrefix(`/minio`)"
+      - "traefik.http.routers.mavis-storage-minio.rule=Host(`minio.${DOMAIN}`)"
       - "traefik.http.routers.mavis-storage-minio.entrypoints=websecure"
-      - "traefik.http.routers.mavis-storage-minio.service=mavis-storage@docker"
-      - "traefik.http.routers.mavis-storage-minio.middlewares=mavis-storage-minio-stripprefix"
-      - "traefik.http.middlewares.mavis-storage-minio-stripprefix.stripprefix.prefixes=/minio"
+      - "traefik.http.routers.mavis-storage-minio.service=mavis-storage-minio@docker"
       - "traefik.http.routers.mavis-storage-minio.tls=true"
+
+
 
   mavis-f2e:
     restart: always
@@ -214,9 +214,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.mavis-pgweb.loadbalancer.server.port=8081"
-      - "traefik.http.routers.mavis-pgweb.rule=PathPrefix(`/pgweb`)"
-      - "traefik.http.routers.mavis-pgweb.middlewares=mavis-pgweb-stripprefix"
-      - "traefik.http.middlewares.mavis-pgweb-stripprefix.stripprefix.prefixes=/pgweb"
+      - "traefik.http.routers.mavis-storage-minio.rule=Host(`minio-${DOMAIN}`)"
       - "traefik.http.routers.mavis-pgweb.entrypoints=websecure"
       - "traefik.http.routers.mavis-pgweb.service=mavis-pgweb@docker"
       - "traefik.http.routers.mavis-pgweb.tls=true"
@@ -286,11 +284,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.mavis-flower.loadbalancer.server.port=5555"
-      - "traefik.http.routers.mavis-flower.rule=PathPrefix(`/flower`)"
-      - "traefik.http.middlewares.mavis-flower-stripprefix.stripprefix.prefixes=/flower"
+      - "traefik.http.routers.mavis-flower.rule=Host(`flower-${DOMAIN}`)"
       - "traefik.http.routers.mavis-flower.entrypoints=websecure"
-      - "traefik.http.routers.mavis-flower.middlewares=mavis-flower-stripprefix"
-      - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
       - "traefik.http.routers.mavis-flower.tls=true"
 
 networks:
