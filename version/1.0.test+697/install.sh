@@ -247,7 +247,6 @@ After=docker.service
 Environment=COMPOSE_HTTP_TIMEOUT=600
 ExecStartPre=/bin/sh -c "/usr/bin/docker network create --driver bridge mavis || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker rm keeper --force || /bin/true"
-ExecStartPre=/bin/sh -c "/usr/bin/docker pull gcr.io/pentium-mavis/keeper:\$(cat ${INSTALL_DIR}/config/current_version|sed 's/+/-/g')"
 ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR}  -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} gcr.io/pentium-mavis/keeper:\$(cat ${INSTALL_DIR}/config/current_version|sed 's/+/-/g') start"
 ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e CURRENT_VERSION=\$(cat ${INSTALL_DIR}/config/current_version) -e INSTALL_DIR=${INSTALL_DIR} gcr.io/pentium-mavis/keeper:\$(cat ${INSTALL_DIR}/config/current_version|sed 's/+/-/g') stop"
 StandardOutput=syslog
@@ -297,47 +296,81 @@ EOF
 
 }
 
+check_docker_version() {
+SERVER_VERSION=$(docker version -f "{{.Server.Version}}")
+SERVER_VERSION_MAJOR=$(echo "$SERVER_VERSION"| cut -d'.' -f 1)
+SERVER_VERSION_MINOR=$(echo "$SERVER_VERSION"| cut -d'.' -f 2)
+SERVER_VERSION_BUILD=$(echo "$SERVER_VERSION"| cut -d'.' -f 3)
+
+if [ "${SERVER_VERSION_MAJOR}" -ge 20 ] && \
+   [ "${SERVER_VERSION_MINOR}" -ge 10 ]  && \
+   [ "${SERVER_VERSION_BUILD}" -ge 0 ]; then
+    echo "Docker version >= 20.10.0 it's ok"
+else
+    echo "Docker version less than 20.10.0 can't continue"
+    remove_docker    
+fi
+}
+
 remove_docker() {
-	echo "Removing old docker"
 	check_user
 	get_distribution
-	$sh_c 'systemctl stop docker.service' || true
-	$sh_c 'systemctl stop docker.socket' || true
-	$sh_c 'systemctl stop mavis' || true
 	case "$lsb_dist" in
-	ubuntu | debian)
-		$sh_c 'apt purge docker-ce docker-ce-cli containerd.io docker-compose-plugin docker docker-engine docker.io containerd runc docker-ce-rootless-extras -y'
-		$sh_c 'rm -f /etc/apt/keyrings/docker.gpg'
-		if command_exists docker; then
-			echo -e "${COLOR_RED}If you already have Docker installed, please remove it${COLOR_REST}"
-			exit 1
-		fi
-		;;
-	centos | rhel)
-		$sh_c 'yum remove docker-ce docker-ce-cli containerd.io docker-compose-plugin -y'
-		if command_exists docker; then
-			echo -e "${COLOR_RED}If you already have Docker installed, please remove it${COLOR_REST}"
-			exit 1
-		fi
-		;;
+        ubuntu | debian)
+                echo -e "${COLOR_RED}Please enter the command to remove the old version of docker${COLOR_REST}"
+                echo -e "${COLOR_RED}Your server still have Docker installed, please remove it${COLOR_REST}"
+                echo -e "${COLOR_RED}If you can't remove docker ,please contact pentium${COLOR_REST}"
+                echo ""
+                echo " sudo systemctl stop docker.service "
+                echo " sudo systemctl stop docker.socket "
+                echo " sudo systemctl stop mavis " 
+                echo " sudo apt update -y "
+                echo " sudo apt purge docker-ce docker-ce-cli containerd.io docker-compose-plugin docker docker-engine docker.io containerd runc docker-ce-rootless-extras -y "      
+                echo " sudo rm -f /etc/apt/keyrings/docker.gpg "
+                ecoh ""
+                exit 1
+                ;;
+        centos | rhel)
+                echo -e "${COLOR_RED}Please enter the command to remove the old version of docker${COLOR_REST}"
+                echo -e "${COLOR_RED}Your server still have Docker installed, please remove it${COLOR_REST}"
+                echo -e "${COLOR_RED}If you can't remove docker ,please contact pentium${COLOR_REST}"
+                echo ""
+                echo " sudo systemctl stop docker.service "
+                echo " sudo systemctl stop docker.socket "
+                echo " sudo systemctl stop mavis "
+                echo " sudo yum update -y "
+                echo " sudo yum remove docker-ce docker-ce-cli containerd.io docker-compose-plugin -y "
+                echo ""
+                exit 1
+                ;;
 	fedora)
-		$sh_c 'dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-selinux docker-engine-selinux docker-engine docker-logrotate  docker-ce docker-ce-cli containerd.io docker-compose-plugin -y'
-		if command_exists docker; then
-			echo -e "${COLOR_RED}If you already have Docker installed, please remove it${COLOR_REST}"
-			exit 1
-		fi
+                echo -e "${COLOR_RED}Please enter the command to remove the old version of docker${COLOR_REST}"
+                echo -e "${COLOR_RED}Your server still have Docker installed, please remove it${COLOR_REST}"
+                echo -e "${COLOR_RED}If you can't remove docker ,please contact pentium${COLOR_REST}"
+                echo ""
+                echo " sudo systemctl stop docker.service "
+                echo " sudo systemctl stop docker.socket "
+                echo " sudo systemctl stop mavis "
+                echo " sudo dnf upgrade --refresh "
+		echo " sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest \ " 
+                 docker-latest-logrotate docker-selinux docker-engine-selinux docker-engine  \ "
+                 docker-logrotate  docker-ce docker-ce-cli containerd.io docker-compose-plugin -y "
+                echo ""
+                exit 1
 		;;
 	zypper)
-		$sh_c 'zypper remove docker-ce docker-ce-cli containerd.io docker-compose-plugin -y'
-		if command_exists docker; then
-			echo "${COLOR_RED}If you already have Docker installed, please remove it${COLOR_REST}"
-			exit 1
-		fi
+                echo -e "${COLOR_RED}Please enter the command to remove the old version of docker${COLOR_REST}"
+                echo -e "${COLOR_RED}Your server still have Docker installed, please remove it${COLOR_REST}"
+                echo -e "${COLOR_RED}If you can't remove docker ,please contact pentium${COLOR_REST}"
+                echo " sudo systemctl stop docker.service "
+                echo " sudo systemctl stop docker.socket "
+                echo " sudo systemctl stop mavis "
+		echo '  sudo zypper remove docker-ce docker-ce-cli containerd.io docker-compose-plugin -y'
+                exit 1
 		;;
 	*) ;;
 
 	esac
-	echo "Remove old docker success"
 }
 
 start_docker() {
@@ -907,9 +940,10 @@ do_install() {
 # half the file during "curl | sh"
 check_environment
 if command_exists docker && [ x"$DRY_RUN" != x"1" ]; then
-	remove_docker
+	check_docker_version
+else
+  do_install
 fi
-do_install
 check_user
 start_docker
 install_mavis

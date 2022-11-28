@@ -10,6 +10,7 @@ services:
     image: "gcr.io/pentium-mavis/traefik:v2.6.1"
     container_name: "traefik"
     logging: *dev-logging
+    pull_policy: if_not_present
     command:
       - "--log.level=DEBUG"
       - "--api.insecure=true"
@@ -29,6 +30,7 @@ services:
   mavis-apiserver:
     restart: always
     image: gcr.io/pentium-mavis/apiserver:1.0.test-697
+    pull_policy: if_not_present
     container_name: mavis-apiserver
     depends_on:
       - mavis-postgres
@@ -56,6 +58,7 @@ services:
 
   mavis-storage:
     image: cr-preview.pentium.network/minio
+    pull_policy: if_not_present
     expose:
       - "9000"
       - "9001"
@@ -67,7 +70,7 @@ services:
       MINIO_ROOT_USER: ${STORAGE_KEY_ID}
       MINIO_ROOT_PASSWORD: ${STORAGE_SECRET}
       MINIO_VOLUMES: /data
-    container_name: preview-mavis-storage
+    container_name: mavis-storage
     command: server --console-address ":9001" /data
     labels:
       - "traefik.enable=true"
@@ -88,6 +91,7 @@ services:
 
 
   mavis-f2e:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/f2e:1.0.test-697
     container_name: mavis-f2e
@@ -113,6 +117,7 @@ services:
       - "traefik.http.routers.mavis-f2e.tls=true"
 
   mavis-postgres:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/postgres:12.3
     container_name: mavis-postgres
@@ -127,6 +132,7 @@ services:
     logging: *dev-logging
 
   mavis-ssh-proxy:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/ssh-proxy:1.0.test-697
     container_name: mavis-ssh-proxy
@@ -153,6 +159,7 @@ services:
 
 
   mavis-rdpguacd:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/rdpguacd:1.0.test-697
     container_name: mavis-rdpguacd
@@ -168,6 +175,7 @@ services:
 
 
   mavis-rdp-proxy:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/rdp-proxy:1.0.test-697
     container_name: mavis-rdp-proxy
@@ -195,6 +203,7 @@ services:
 
 
   mavis-pgweb:
+    pull_policy: if_not_present
     restart: always
     container_name: mavis-pgweb
     restart: always
@@ -222,6 +231,7 @@ services:
 
 
   mavis-redis:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/redis:5.0
     container_name: mavis-redis
@@ -230,6 +240,7 @@ services:
     logging: *dev-logging
 
   mavis-task-runner:
+    pull_policy: if_not_present
     image: gcr.io/pentium-mavis/apiserver:1.0.test-697
     container_name: mavis-task-runner
     volumes:
@@ -250,6 +261,7 @@ services:
       - "traefik.enable=false"
 
   mavis-beat:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/apiserver:1.0.test-697
     container_name: mavis-beat
@@ -268,6 +280,7 @@ services:
       - "traefik.enable=false"
 
   mavis-flower:
+    pull_policy: if_not_present
     restart: always
     image: gcr.io/pentium-mavis/apiserver:1.0.test-697
     container_name: mavis-flower
