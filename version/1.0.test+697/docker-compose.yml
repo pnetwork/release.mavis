@@ -66,9 +66,10 @@ services:
       - mavis
     volumes:
       - ../../storage_data:/data:z
+    env_file:
+      - .env
+      - ../.env
     environment:
-      MINIO_ROOT_USER: ${STORAGE_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET}
       MINIO_VOLUMES: /data
     container_name: mavis-storage
     command: server --console-address ":9001" /data
