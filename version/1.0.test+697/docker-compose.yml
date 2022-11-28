@@ -57,7 +57,7 @@ services:
 
 
   mavis-storage:
-    image: cr-preview.pentium.network/minio
+    image: gcr.io/pentium-mavis/minio
     pull_policy: if_not_present
     expose:
       - "9000"

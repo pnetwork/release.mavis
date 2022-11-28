@@ -329,7 +329,7 @@ remove_docker() {
                 echo " sudo apt update -y "
                 echo " sudo apt purge docker-ce docker-ce-cli containerd.io docker-compose-plugin docker docker-engine docker.io containerd runc docker-ce-rootless-extras -y "      
                 echo " sudo rm -f /etc/apt/keyrings/docker.gpg "
-                ecoh ""
+                echo ""
                 exit 1
                 ;;
         centos | rhel)
