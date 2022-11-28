@@ -216,6 +216,8 @@ install_mavis() {
 		echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >>${INSTALL_DIR}/config/.env
                 echo "STORAGE_SECRET=${STORAGE_SECRET}" >> ${INSTALL_DIR}/config/.env
                 echo "STORAGE_KEY_ID=${STORAGE_KEY_ID:-minio}"  >> ${INSTALL_DIR}/config/.env
+                echo "MINIO_ROOT_USER=${STORAGE_KEY_ID:-minio}" >> ${INSTALL_DIR}/config/.env
+                echo "MINIO_ROOT_PASSWORD=${STORAGE_SECRET}" >> ${INSTALL_DIR}/config/.env
 		echo "DATABASE_URL=${DATABASE_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}?sslmode=disable}" >>${INSTALL_DIR}/config/.env
 		echo "DB_URL=${DB_URL:-postgresql://\${POSTGRES_USER\}:\${POSTGRES_PASSWORD\}@\${POSTGRES_HOST\}:\${POSTGRES_PORT\}/\${POSTGRES_DB\}}" >>${INSTALL_DIR}/config/.env
 		echo "REDIS_HOST=${REDIS_HOST:-mavis-redis}" >>${INSTALL_DIR}/config/.env
